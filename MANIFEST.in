@@ -1,0 +1,7 @@
+include README.md
+include LICENSE
+include requirements.txt
+graft climetlab_cems_flood
+recursive-exclude * *.py[co]
+include versioneer.py
+include climetlab_cems_flood/_version.py

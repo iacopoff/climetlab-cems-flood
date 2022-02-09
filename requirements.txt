@@ -1,0 +1,4 @@
+wheel>=0.22
+climetlab>=0.9.5
+dask[complete]
+
