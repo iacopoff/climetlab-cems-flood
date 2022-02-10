@@ -7,7 +7,7 @@ from climetlab import Dataset
 from .utils import Parser, months_num2str
 
 from functools import partial
-# __version__ = "0.1.0"
+
 
 def ensure_list(x):
     if isinstance(x, list):
@@ -42,8 +42,13 @@ class GlofasHistorical(Dataset):
 
         months = months_num2str(months)
 
-        lat, lon = list(map(ensure_list,[lat,lon]))
+        if lat is not None and lon is not None:
+            area = []
+            lat, lon = list(map(ensure_list,[lat,lon]))
+            for la,lo in zip(lat,lon):
+                area.extend([la,lo,la,lo]) # N/W/S/E
 
+            
 
         self.request = {
             "system_version": system_version,
@@ -54,18 +59,15 @@ class GlofasHistorical(Dataset):
             "hmonth": months,
             "hday": days,
             "format": "grib",
-            "split_on": "area"
+            #"split_on": "area"s
         }
 
-        if lat is not None and lon is not None:
-            area = []
-            for la,lo in zip(lat,lon):
-                area.append([la,lo,la,lo]) # N/W/S/E
+
 
         if area:
             self.request.update({"area":area})
 
-
+       
         self.source = cml.load_source("cds", "cems-glofas-historical", **self.request)
 
 

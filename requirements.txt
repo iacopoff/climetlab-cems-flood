@@ -1,4 +1,4 @@
-wheel>=0.22
-climetlab>=0.9.5
+wheel
+climetlab
 dask[complete]
 
