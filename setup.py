@@ -18,13 +18,6 @@ def read(fname):
 
 package_name = "climetlab_cems_flood"
 
-# version = None
-# init_py = os.path.join(package_name.replace("-", "_"), "__init__.py")
-# for line in read(init_py).split("\n"):
-#    if line.startswith("__version__"):
-#        version = line.split("=")[-1].strip()[1:-1]
-# assert version
-
 
 extras_require = {}
 
@@ -41,7 +34,7 @@ setuptools.setup(
     license="Apache License Version 2.0",
     packages=setuptools.find_packages(),
     include_package_data=True,
-    install_requires=["climetlab>=0.5.6"],
+    install_requires=["climetlab>=0.9.0"],
     extras_require=extras_require,
     zip_safe=True,
     entry_points={
