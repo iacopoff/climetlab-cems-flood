@@ -67,9 +67,13 @@ class Parser:
                 "[0-9]{4}\*\*":[string[:4],M,D],
                 "\*[0-9]{2}\*":[cls.Y,string[1:3],D],
                 "\*\*[0-9]{2}":[cls.Y,M,string[3:]],
-                "\*\*\*":[cls.Y,M,D]}
+                "\*\*\*":[cls.Y,M,D],
+                "\*[0-9-]{5}\*":[cls.Y,string[1:6],D],
+                "[0-9-]{9}\*\*":[string[:9],M,D],
+                "\*\*[0-9-]{5}":[cls.Y,M,string[3:]]
+                }
 
-        _validate(string)
+        #_validate(string)
 
         if "*" in string:
             years = set()
@@ -80,7 +84,10 @@ class Parser:
                 if re.match(p,string):
                     break
                 
-            years,months,days = PATTERN[p]
+            years,months,days = list(map(unpack,PATTERN[p]))
+
+            #years = 
+            #months = unpack(months)
 
             return sorted(ensure_list(years)), sorted(ensure_list(months)), sorted(ensure_list(days))
 
@@ -122,3 +129,16 @@ def months_num2str(months: T.List[str]):
                "06":"june","07":"july","08":"august","09":"september","10":"october",
               "11":"november","12":"december"}
     return [mapping.get(m) for m in months if mapping.get(m)]
+
+
+
+def unpack(string):
+    if "-" in string:
+        start, end = string.split("-")
+        if len(start) <= 2:
+            return ["%02d"%d for d in range(int(start),int(end)+1)]
+        elif len(start) > 2:
+            return [str(d) for d in range(int(start),int(end)+1)]
+    else:
+        return string
+    

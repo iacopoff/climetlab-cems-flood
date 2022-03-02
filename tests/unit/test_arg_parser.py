@@ -148,7 +148,34 @@ def test_parser_period(string,expected):
                                                     ["%02d"%m for m in range(1,13)],
                                                     ["01"]
                                                     ]
-                                                ),  
+                                                ),
+                                                (
+                                                    "*10-12*",
+                                                    [
+                                                      ["%d"%y for y in range(1979,2022,1)],
+                                                      ["10","11","12"],
+                                                      ["%02d"%d for d in range(1,32)]  
+                                                    ]
+
+                                                ),
+                                                (
+                                                    "2000-2010**",
+                                                    [
+                                                      ["%d"%y for y in range(2000,2011,1)],
+                                                      ["%02d"%m for m in range(1,13)],
+                                                      ["%02d"%d for d in range(1,32)]  
+                                                    ]
+
+                                                ) ,
+                                                (
+                                                    "**01-08",
+                                                    [
+                                                      ["%d"%y for y in range(1979,2022,1)],
+                                                      ["%02d"%m for m in range(1,13)],
+                                                      ["01","02","03","04","05","06","07","08"]  
+                                                    ]
+
+                                                )  
                                             ]
                                                 
                         )
