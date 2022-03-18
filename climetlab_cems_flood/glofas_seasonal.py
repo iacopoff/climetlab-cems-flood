@@ -9,7 +9,7 @@ import cf2cdm
 
 from .utils import Parser, ReprMixin, months_num2str, handle_cropping_area
 
-class GlofasForecast(Dataset, ReprMixin):
+class GlofasSeasonal(Dataset, ReprMixin):
     name = None
     home_page = "-"
     licence = "-"
@@ -24,31 +24,29 @@ class GlofasForecast(Dataset, ReprMixin):
         "If you do not agree with such terms, do not download the data. "
     )
 
-    temporal_range = [2019, date.today().year]
+    temporal_range = [2021, date.today().year]
 
-    def __init__(self, system_version, product_type, model, variable, period, leadtime, area = None, lat = None, lon = None):
+    def __init__(self, system_version, model, variable, period, leadtime, area = None, lat = None, lon = None):
 
         self.parser = Parser(self.temporal_range)
 
-        years, months, days = self.parser.period(period)
+        years, months, _ = self.parser.period(period)
 
         leadtime_hour = self.parser.leadtime(leadtime, 24)
 
         self.request = {
             "system_version": system_version,
             "hydrological_model": model,
-            "product_type": product_type,
             "variable": variable,
             "year": years,
             "month": months,
-            "day": days,
             "leadtime_hour": leadtime_hour,
             "format": "grib",
         }
 
         handle_cropping_area(self.request, area, lat, lon)
 
-        self.source = cml.load_source("cds", "cems-glofas-forecast", **self.request)
+        self.source = cml.load_source("cds", "cems-glofas-seasonal", **self.request)
 
 
 

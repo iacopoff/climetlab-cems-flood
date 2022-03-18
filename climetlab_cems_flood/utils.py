@@ -46,20 +46,22 @@ class Parser:
         
 
     @staticmethod
-    def leadtime(string):
-
-        s = string.split("/")
-
+    def leadtime(string, step):
         ret = []
+        s = string.split("/")
         for chunk in s:
-            start, end = chunk.split("-")
-            ret.extend(list(map(str, range(int(start), int(end) + 24, 24))))
+            if "-" in chunk:
+                start, end = chunk.split("-")
+                ret.extend(list(map(str, range(int(start), int(end) + step, step))))
+            else:
+                ret.append(chunk)
 
         return ret
 
     @classmethod
     def period(cls,string):
 
+        
         PATTERN = {"[0-9]{8}":{}, # most frequent
                 "\*[0-9]{2}[0-9]{2}":[cls.Y,string[1:3],string[3:]],
                 "[0-9]{4}\*[0-9]{2}":[string[:4],M,string[5:]],
@@ -70,7 +72,10 @@ class Parser:
                 "\*\*\*":[cls.Y,M,D],
                 "\*[0-9-]{5}\*":[cls.Y,string[1:6],D],
                 "[0-9-]{9}\*\*":[string[:9],M,D],
-                "\*\*[0-9-]{5}":[cls.Y,M,string[3:]]
+                "\*\*[0-9-]{5}":[cls.Y,M,string[3:]],
+
+                "[0-9-]{9}[0-9-]{5}\*":[string[:9],string[9:14],D],
+                "\*[0-9-]{5}[0-9-]{5}":[cls.Y, string[1:6],string[7:]]
                 }
 
         #_validate(string)
@@ -86,8 +91,7 @@ class Parser:
                 
             years,months,days = list(map(unpack,PATTERN[p]))
 
-            #years = 
-            #months = unpack(months)
+
 
             return sorted(ensure_list(years)), sorted(ensure_list(months)), sorted(ensure_list(days))
 
@@ -97,7 +101,6 @@ class Parser:
         months = set()
         days = set()
         for chunk in s:
-
             if "-" in chunk: # check "-"
                 start, end = chunk.split("-")
                 start = datetime.strptime(start, "%Y%m%d")
@@ -133,12 +136,49 @@ def months_num2str(months: T.List[str]):
 
 
 def unpack(string):
-    if "-" in string:
+    try:
+        string.split("-")
         start, end = string.split("-")
         if len(start) <= 2:
             return ["%02d"%d for d in range(int(start),int(end)+1)]
         elif len(start) > 2:
-            return [str(d) for d in range(int(start),int(end)+1)]
-    else:
+            return [str(d) for d in range(int(start),int(end)+1)] 
+    except:
         return string
     
+
+
+def handle_cropping_area(request, area, lat, lon):
+
+    if lat is not None and lon is not None:
+        if area is not None:
+            raise ValueError("Can't have ('lat' or 'lon') and 'area'")
+        # Compute area from coordinates (MARS client)
+        area = []
+        lat, lon = list(map(ensure_list,[lat,lon]))
+        for la,lo in zip(lat,lon):
+            area.extend([la,lo,la,lo]) # N/W/S/E
+
+    if isinstance(area, list):  
+        request.update({"area":area})
+    elif type(area).__name__ == 'GeoDataFrame' or type(area).__name__ == 'GeoSeries':
+        W,S,E,N = area.unary_union.bounds # (minx, miny, maxx, maxy)
+        bounds = [N,W,S,E]
+        request.update({"area":bounds})
+
+
+class ReprMixin:
+    def _repr_html_(self):
+        ret = super()._repr_html_()
+    
+        style = """
+            <style>table.climetlab td {
+            vertical-align: top;
+            text-align: left !important;}
+        </style>"""      
+        
+        li = ""
+        for key in self.request:
+            li += f"<li> <b>{key}: </b> {self.request[key]} </li>".format()
+            
+        return ret + f"""<table class="climetlab"><tr><td><b>Request</b></td><td><ul>{li}</ul></td></tr></table>"""

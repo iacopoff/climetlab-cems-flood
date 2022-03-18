@@ -13,8 +13,9 @@ def assert_period(years,months,days,expected):
 def test_parser_leadtime():
 
     parser = Parser()
+    step = 24
 
-    assert parser.leadtime("24-72/480-600") == [
+    assert parser.leadtime("24-72/480-600", step) == [
         "24",
         "48",
         "72",
@@ -26,7 +27,7 @@ def test_parser_leadtime():
         "600",
     ]
 
-    assert parser.leadtime("24-600") == [
+    assert parser.leadtime("24-600", step) == [
         "24",
         "48",
         "72",
@@ -54,7 +55,7 @@ def test_parser_leadtime():
         "600",
     ]
 
-    assert parser.leadtime("24-72/240-336/480-600") == [
+    assert parser.leadtime("24-72/240-336/480-600", step) == [
         "24",
         "48",
         "72",
@@ -173,6 +174,24 @@ def test_parser_period(string,expected):
                                                       ["%d"%y for y in range(1979,2022,1)],
                                                       ["%02d"%m for m in range(1,13)],
                                                       ["01","02","03","04","05","06","07","08"]  
+                                                    ]
+
+                                                ) ,
+                                                (
+                                                    "2001-200501-05*",
+                                                    [
+                                                      ["%d"%y for y in range(2001,2006,1)],
+                                                      ["%02d"%m for m in range(1,6)],
+                                                      ["%02d"%d for d in range(1,32)] 
+                                                    ]
+
+                                                ) ,
+                                                                                                (
+                                                    "*01-0501-05",
+                                                    [
+                                                      ["%d"%y for y in range(1979,2022,1)],
+                                                      ["%02d"%m for m in range(1,6)],
+                                                      ["%02d"%d for d in range(1,6)] 
                                                     ]
 
                                                 )  
