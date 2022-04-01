@@ -1,12 +1,18 @@
 from datetime import datetime, timedelta
+from functools import partial
+from itertools import product
 import typing as T
 import re
+from climetlab import load_source
+from copy import deepcopy
 
 M = ["%02d"%d for  d in range(1,13)]
 Y = [str(d) for d in range(2000,2019)]
 D = ["%02d"%d for  d in range(1,32)]
-
-
+DEFAULT_KEY_MAPPING = {"leadtime_hour":"lh", 
+                        "river_discharge_in_the_last_24_hours":"rivo",
+                        'control_forecast':'cf',
+                        'snow_melt_water_equivalent':'swe'}
 
 class StringNotValidError(Exception):
 
@@ -182,3 +188,70 @@ class ReprMixin:
             li += f"<li> <b>{key}: </b> {self.request[key]} </li>".format()
             
         return ret + f"""<table class="climetlab"><tr><td><b>Request</b></td><td><ul>{li}</ul></td></tr></table>"""
+
+
+
+
+def validate_params(func):
+    def inner(*args, **kwargs):
+        ret = func(*args, **kwargs)
+        return ret 
+
+    return inner
+
+
+def chunking(requested_param_values: tuple[str], chunk_size: int) -> list[list[str]]:
+    """
+    
+    """
+    if chunk_size is None:
+        return [ensure_list(requested_param_values)]
+    return [requested_param_values[i:i+chunk_size] for i in range(0, len(requested_param_values), chunk_size)]
+
+
+
+def translate(chunk: tuple[list[str]], param_spliton_names, key_mapping):
+    """
+    the weird chunk is the one on the area parameter as it is a list
+    of list with integers.
+    """
+    mapping = DEFAULT_KEY_MAPPING | key_mapping 
+    strings = [] 
+    for param_values,param_name in zip(chunk, param_spliton_names):
+        if param_name == 'area':
+            p = list(map(str,param_values[0])) # TO DO: this whould be ensured at a higher level, when validating the user's request dictionary 
+            val_name = "-".join(p)
+        elif len(param_values) < 2:
+            val_name = param_values[0]
+        else:
+            val_name = f"{param_values[0]}-{param_values[-1]}"
+        param_name = mapping.get(param_name, param_name)
+        val_name = mapping.get(val_name, val_name)
+        strings.append("-".join([param_name, val_name]))
+    return "_".join(strings)
+
+
+def build_multi_request(request, split_on, dataset, key_mapping= {}):
+    """
+    split_on is a list of tuples. Each tuple contains the parameter name by which a request should be split and 
+    and an indication of the number of element in each chunk.
+    When the number of element in a chunk is missing it is assumed that the parameter is split in 1-sized chunks.
+    """
+    split_on: list[tuple] = [i if isinstance(i, tuple) else (i, 1) for i in split_on]
+    param_spliton_names: list[str] = [i[0] if isinstance(i, tuple) else i for i in split_on]
+    sources = []
+    output_names = []
+    chunks: list[tuple[list[str]]] = list(
+        product(*[chunking(request[tup[0]], tup[1]) for tup in split_on])
+    )
+    #breakpoint()
+    for chunk in chunks:
+        output_name = translate(chunk, param_spliton_names, key_mapping)
+        d = {k[0]: v for k, v in zip(split_on, chunk)}
+        r = deepcopy(request)
+        r.update(d)
+        sources.append(
+            partial(load_source, "cds", dataset, r)
+        )
+        output_names.append(output_name)
+    return sources, output_names

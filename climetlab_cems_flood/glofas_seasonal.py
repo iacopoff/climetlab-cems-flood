@@ -7,7 +7,7 @@ from climetlab import Dataset
 import cf2cdm
 
 
-from .utils import Parser, ReprMixin, months_num2str, handle_cropping_area
+from .utils import Parser, ReprMixin, handle_cropping_area
 
 class GlofasSeasonal(Dataset, ReprMixin):
     name = None
