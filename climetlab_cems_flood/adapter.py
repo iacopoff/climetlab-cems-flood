@@ -2,6 +2,9 @@ from typing import Dict, List, Union
 from pathlib import Path
 import climetlab as cml
 import rechunker as rc
+import zarr
+from zarr.errors import ContainsArrayError
+import shutil
 """
 The adapter should configure where, what and how the data should be saved.
 The scopes are:
@@ -13,25 +16,58 @@ The scopes are:
 
 class Adapter:
 
-    def __init__(self, dataset: cml.Dataset, output_folder: str, output_name_prefix: str, output_format: str, key_mapping: Dict[str, str] = None):
+    def __init__(self, dataset: cml.Dataset, output_folder: str, output_name_prefix: str, key_mapping: Dict[str, str] = None):
         self.dataset = dataset
-        self.out_folder = output_folder
-        self.out_name_prefix = output_name_prefix
-        self.output_format = output_format
+        self.output_folder = Path(output_folder)
+        self.output_name_prefix = output_name_prefix
+        self.output_name = "-".join([self.dataset.name,self.output_name_prefix])
+        self.output_path = None
+        
+
+        if self.dataset.output_names is None:
+            self.output_path = [self.output_folder / self.output_name]
+        else:
+            self.output_path = []
+            for fn in self.dataset.output_names:
+                file_name = "_".join([self.output_name, fn])
+                self.output_path.append(self.output_folder / file_name)
 
 
 
-    def to_netcdf(): # all individual save or merge everything and then save
+    def to_netcdf(self): # all individual save or merge everything and then save
+        if len(self.output_path) < 2:
+            ds = self.dataset.to_xarray()
+            ds.to_netcdf(self.output_path[0].with_suffix('.nc'))
+        else:
+            for i,src in enumerate(self.dataset.source.sources):
+                ds = src.to_xarray()
+                ds.to_netcdf(self.output_path[i].with_suffix('.nc'))
+
+
+    def to_zarr(self, rechunk: bool = False, target_chunks: Dict[str, Union[Dict[str, int], None]] = {}, max_mem: str = '2M', temp_store = 'temp.zarr'):
         ds = self.dataset.to_xarray()
-        ds.to_netcdf()
+        out_name = self.output_folder / self.output_name
+        out_name_fmt = out_name.with_suffix('.zarr')
+        out_target_name = self.output_folder / "_".join(["rc",self.output_name])
+        temp_store = self.output_folder / temp_store
 
-    def to_zarr(rechunk: bool = False, target_chunks: Dict[str, Union[Dict[str, int], None]] = {}, max_mem: str = '2M', temp_store = 'temp.zarr'):
-        ret = self.dataset.to_zarr()
+        if not out_name_fmt.exists():
+            ds.to_zarr(out_name_fmt, mode ="w")
+        
+        if temp_store.exists():
+            shutil.rmtree(temp_store)
 
         if rechunk:
-            rc.rechunk(source_group, target_chunks, max_mem, target_store, temp_store=temp_store)
-            # remove temp store
-            # replace source group with target store
+            ds = zarr.open(out_name_fmt)
+            try: 
+                ret = rc.rechunk(ds, target_chunks, max_mem, out_target_name, temp_store=temp_store)
+                ret.execute()
+            except ContainsArrayError:
+                print("Cannot write on non-empty zarr")
+            shutil.rmtree(temp_store)
+
+        else:
+            ds.to_zarr(out_name_fmt, mode ="w")
 
 
 

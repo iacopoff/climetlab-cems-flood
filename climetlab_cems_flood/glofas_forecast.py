@@ -48,9 +48,7 @@ class GlofasForecast(Dataset, ReprMixin):
         lon=None,
         split_on=None,
         threads=None,
-        output_folder=None,
-        output_name=None,
-        output_format=None
+        merger=None
     ):
 
         if threads is not None:
@@ -78,10 +76,11 @@ class GlofasForecast(Dataset, ReprMixin):
 
         if split_on is not None:
             sources, output_names = build_multi_request(self.request, split_on, dataset ='cems-glofas-forecast')
-            import pdb;pdb.set_trace()
-            self.source = cml.load_source("multi", sources)
+            self.output_names = output_names
+            self.source = cml.load_source("multi", sources, merger=merger)
             
         else:
+            self.output_names = None
             self.source = cml.load_source("cds", "cems-glofas-forecast", **self.request)
             
         #import pdb;pdb.set_trace()
@@ -95,8 +94,8 @@ class GlofasForecast(Dataset, ReprMixin):
         return cf2cdm.translate_coords(ds, cf2cdm.CDS)
 
 
-    def to_netcdf(self):
-        pass
+    # def to_netcdf(self):
+    #     pass
 
-    def to_zarr(self):
-        pass
+    # def to_zarr(self):
+    #     pass
