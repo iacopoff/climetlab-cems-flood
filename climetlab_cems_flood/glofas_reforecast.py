@@ -1,18 +1,66 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+from datetime import date,datetime, timedelta
 import climetlab as cml
 from climetlab import Dataset
+import cf2cdm
 
-# __version__ = "0.1.0"
+
+from .utils import (
+    Parser,
+    ReprMixin,
+    handle_cropping_area,
+    build_multi_request,
+    months_num2str
+)
+
+def get_monthsdays():
+ 
+    start, end = datetime(2019, 1, 1), datetime(2019, 12, 31)
+    days = [start + timedelta(days=i) for i in range((end - start).days + 1)]
+    monthday = [d.strftime("%m-%d").split("-")  for d in days if d.weekday() in [0,3] ]  
+ 
+    return monthday
+ 
+MONTHSDAYS = get_monthsdays()
 
 
-class GlofasRerorecast(Dataset):
+class GlofasReforecast(Dataset, ReprMixin):
+    """_summary_
+
+    :param system_version: _description_
+    :type system_version: _type_
+    :param product_type: _description_
+    :type product_type: _type_
+    :param model: _description_
+    :type model: _type_
+    :param variable: _description_
+    :type variable: _type_
+    :param period: _description_
+    :type period: _type_
+    :param leadtime_hour: _description_
+    :type leadtime_hour: _type_
+    :param area: _description_, defaults to None
+    :type area: _type_, optional
+    :param lat: _description_, defaults to None
+    :type lat: _type_, optional
+    :param lon: _description_, defaults to None
+    :type lon: _type_, optional
+    :param split_on: _description_, defaults to None
+    :type split_on: _type_, optional
+    :param threads: _description_, defaults to None
+    :type threads: _type_, optional
+    :param merger: _description_, defaults to False
+    :type merger: bool, optional
+        """
+        
     name = None
     home_page = "-"
     licence = "-"
     documentation = "-"
     citation = "-"
+    request = "-"
 
     terms_of_use = (
         "By downloading data from this dataset, you agree to the terms and conditions defined at "
@@ -20,22 +68,76 @@ class GlofasRerorecast(Dataset):
         "If you do not agree with such terms, do not download the data. "
     )
 
-    dataset = None
+    temporal_range = [2019, date.today().year]
 
-    def __init__(self, year):
-        self.year = year
+    def __init__(
+        self,
+        system_version,
+        product_type,
+        model,
+        variable,
+        period,
+        leadtime_hour,
+        area=None,
+        lat=None,
+        lon=None,
+        split_on=None,
+        threads=None,
+        merger=False
+    ):
+        """Constructor method
+        """
 
-    # @normalize_args(variable=["river_discharge_in_the_last_24_hours"])
-    def _load(self, variable):
-        request = {
-            "system_version": "version_2_1",
-            "hydrological_model": "htessel_lisflood",
-            "product_type": "ensemble_perturbed_forecasts",
+
+        if threads is not None:
+            cml.sources.SETTINGS.set("number-of-download-threads", threads)
+
+        self.parser = Parser(self.temporal_range)
+
+        years, months, days = self.parser.period(period)
+        
+        nmonths=set()
+        ndays = set()
+        # filter days
+        for m in months:
+            for d in days:
+                if [m,d] in MONTHSDAYS:
+                    nmonths.add(m)
+                    ndays.add(d)
+                    
+                    
+        nmonths = list(nmonths)
+        ndays = list(ndays)          
+        
+        nmonths = months_num2str(nmonths)
+
+        leadtime_hour = self.parser.leadtime(leadtime_hour, 24)
+
+        self.request = {
+            "system_version": system_version,
+            "hydrological_model": model,
+            "product_type": product_type,
             "variable": variable,
-            "year": "2019",
-            "month": "11",
-            "day": "05",
-            "leadtime_hour": "24",
+            "hyear": years,
+            "hmonth": nmonths,
+            "hday": ndays,
+            "leadtime_hour": leadtime_hour,
             "format": "grib",
         }
-        self.source = cml.load_source("cds", "cems-glofas-forecast", **request)
+
+        handle_cropping_area(self.request, area, lat, lon)
+
+        if split_on is not None:
+            sources, output_names = build_multi_request(self.request, split_on, dataset ='cems-glofas-reforecast')
+            self.output_names = output_names
+            self.source = cml.load_source("multi", sources, merger=merger)
+            
+        else:
+            self.output_names = None
+            self.source = cml.load_source("cds", "cems-glofas-reforecast", **self.request)
+            
+
+    def to_xarray(self):
+        ds = self.source.to_xarray().isel(surface=0, drop=True)
+        return cf2cdm.translate_coords(ds, cf2cdm.CDS)
+

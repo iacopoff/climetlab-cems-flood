@@ -144,5 +144,8 @@ dmypy.json
 *.grb
 publish.sh
 
+docs/jupyter_execute/*
+
+
 #VSCODE
 *.code-workspace

@@ -10,9 +10,7 @@ import cf2cdm
 from .utils import (
     Parser,
     ReprMixin,
-    months_num2str,
     handle_cropping_area,
-    ensure_list,
     build_multi_request
 )
 
@@ -20,6 +18,34 @@ from .utils import (
 
 
 class GlofasForecast(Dataset, ReprMixin):
+    """_summary_
+
+    :param system_version: _description_
+    :type system_version: _type_
+    :param product_type: _description_
+    :type product_type: _type_
+    :param model: _description_
+    :type model: _type_
+    :param variable: _description_
+    :type variable: _type_
+    :param period: _description_
+    :type period: _type_
+    :param leadtime_hour: _description_
+    :type leadtime_hour: _type_
+    :param area: _description_, defaults to None
+    :type area: _type_, optional
+    :param lat: _description_, defaults to None
+    :type lat: _type_, optional
+    :param lon: _description_, defaults to None
+    :type lon: _type_, optional
+    :param split_on: _description_, defaults to None
+    :type split_on: _type_, optional
+    :param threads: _description_, defaults to None
+    :type threads: _type_, optional
+    :param merger: _description_, defaults to False
+    :type merger: bool, optional
+        """
+        
     name = None
     home_page = "-"
     licence = "-"
@@ -48,8 +74,11 @@ class GlofasForecast(Dataset, ReprMixin):
         lon=None,
         split_on=None,
         threads=None,
-        merger=None
+        merger=False
     ):
+        """Constructor method
+        """
+
 
         if threads is not None:
             cml.sources.SETTINGS.set("number-of-download-threads", threads)
@@ -83,19 +112,8 @@ class GlofasForecast(Dataset, ReprMixin):
             self.output_names = None
             self.source = cml.load_source("cds", "cems-glofas-forecast", **self.request)
             
-        #import pdb;pdb.set_trace()
-
-        # Save to netcdf or zarr
-
-
 
     def to_xarray(self):
         ds = self.source.to_xarray().isel(surface=0, drop=True)
         return cf2cdm.translate_coords(ds, cf2cdm.CDS)
 
-
-    # def to_netcdf(self):
-    #     pass
-
-    # def to_zarr(self):
-    #     pass
