@@ -11,17 +11,20 @@ from .utils import (
     Parser,
     ReprMixin,
     handle_cropping_area,
-    build_multi_request
+    build_multi_request,
+    months_num2str
 )
 
 
 
 
-class GlofasSeasonal(Dataset, ReprMixin):
+class GlofasSeasonalReforecast(Dataset, ReprMixin):
     """_summary_
 
     :param system_version: _description_
     :type system_version: _type_
+    :param product_type: _description_
+    :type product_type: _type_
     :param model: _description_
     :type model: _type_
     :param variable: _description_
@@ -57,7 +60,7 @@ class GlofasSeasonal(Dataset, ReprMixin):
         "If you do not agree with such terms, do not download the data. "
     )
 
-    temporal_range = [2020, date.today().year]
+    temporal_range = [1981, date.today().year]
 
     def __init__(
         self,
@@ -84,14 +87,16 @@ class GlofasSeasonal(Dataset, ReprMixin):
 
         years, months, _ = self.parser.period(period)
 
+        months = months_num2str(months)
+
         leadtime_hour = self.parser.leadtime(leadtime_hour, 24)
 
         self.request = {
             "system_version": system_version,
             "hydrological_model": model,
             "variable": variable,
-            "year": years,
-            "month": months,
+            "hyear": years,
+            "hmonth": months,
             "leadtime_hour": leadtime_hour,
             "format": "grib",
         }
@@ -99,12 +104,13 @@ class GlofasSeasonal(Dataset, ReprMixin):
         handle_cropping_area(self.request, area, lat, lon)
 
         if split_on is not None:
-            sources, output_names = build_multi_request(self.request, split_on, dataset ='cems-glofas-seasonal')
+            sources, output_names = build_multi_request(self.request, split_on, dataset ='cems-glofas-seasonal-reforecast')
             self.output_names = output_names
             self.source = cml.load_source("multi", sources, merger=merger)
+            
         else:
             self.output_names = None
-            self.source = cml.load_source("cds", "cems-glofas-seasonal", **self.request)
+            self.source = cml.load_source("cds", "cems-glofas-seasonal-reforecast", **self.request)
             
 
     def to_xarray(self):

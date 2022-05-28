@@ -5,6 +5,7 @@ import typing as T
 import re
 from climetlab import load_source
 from copy import deepcopy
+from pathlib import Path
 
 M = ["%02d"%d for  d in range(1,13)]
 Y = [str(d) for d in range(2000,2019)]
@@ -174,6 +175,42 @@ def handle_cropping_area(request, area, lat, lon):
 
 
 class ReprMixin:
+    
+    def _set_paths(self, output_folder, output_name_prefix):
+        self.output_folder = Path(output_folder)
+        self.output_name_prefix = output_name_prefix
+        self.output_name = "_".join([self.output_name_prefix,self.name])
+        self.output_path = None
+        
+
+        if self.output_names is None:
+            self.output_path = [self.output_folder / self.output_name]
+        else:
+            self.output_path = []
+            for fn in self.output_names:
+                file_name = "_".join([self.output_name, fn])
+                self.output_path.append(self.output_folder / file_name)
+                
+    def to_netcdf(self, output_folder, output_name_prefix): # all individual save or merge everything and then save
+        
+        self._set_paths(output_folder, output_name_prefix)
+        
+        paths = []    
+        if len(self.output_path) < 2:
+            ds = self.to_xarray()
+            p = self.output_path[0].with_suffix('.nc')
+            paths.append(p)
+            if not p.exists():
+                ds.to_netcdf(p)
+        else:
+            for i,src in enumerate(self.source.sources):
+                ds = src.to_xarray()
+                p = self.output_path[i].with_suffix('.nc')
+                paths.append(p)
+                if not p.exists():
+                    ds.to_netcdf(p)
+                    
+                             
     def _repr_html_(self):
         ret = super()._repr_html_()
     

@@ -141,3 +141,4 @@ class GlofasReforecast(Dataset, ReprMixin):
         ds = self.source.to_xarray().isel(surface=0, drop=True)
         return cf2cdm.translate_coords(ds, cf2cdm.CDS)
 
+

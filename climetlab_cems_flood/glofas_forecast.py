@@ -107,7 +107,6 @@ class GlofasForecast(Dataset, ReprMixin):
             sources, output_names = build_multi_request(self.request, split_on, dataset ='cems-glofas-forecast')
             self.output_names = output_names
             self.source = cml.load_source("multi", sources, merger=merger)
-            
         else:
             self.output_names = None
             self.source = cml.load_source("cds", "cems-glofas-forecast", **self.request)
