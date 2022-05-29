@@ -9,10 +9,6 @@
 
 This is a plugin of the [CliMetLab](https://climetlab.readthedocs.io/en/latest/index.html) Python package, to access the [Global Flood Awareness System (GloFAS)](https://www.globalfloods.eu/general-information/about-glofas/) data through the [Climate Data Store (CDS)](https://cds.climate.copernicus.eu/#!/home) distributed storage system.
 
-In order to download data from the CDS you have to subscribe and configure the [CDS API key](https://cds.climate.copernicus.eu/api-how-to) on you local machine.
-
-
-
 
 ## Installation
 
@@ -23,7 +19,6 @@ In order to download data from the CDS you have to subscribe and configure the [
 introduction.md
 parameters.md
 examples.md
-autoapi/index
 
 
 ```

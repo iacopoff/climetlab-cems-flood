@@ -12,7 +12,7 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../climetlab_cems_flood'))
+sys.path.insert(0, os.path.abspath('../../climetlab_cems_flood'))
 
 import sphinx_rtd_theme
 
@@ -39,7 +39,7 @@ extensions = [
         'sphinx.ext.autodoc',
         'sphinx.ext.autosummary',
          "myst_nb",
-        "autoapi.extension",
+        # "autoapi.extension",
         "sphinx.ext.napoleon",
         "sphinx.ext.viewcode",
         ]

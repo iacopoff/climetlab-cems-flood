@@ -7,7 +7,7 @@ from climetlab import Dataset
 import cf2cdm
 
 
-from .utils import (
+from climetlab_cems_flood.utils import (
     Parser,
     ReprMixin,
     handle_cropping_area,
