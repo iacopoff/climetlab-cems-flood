@@ -6,6 +6,7 @@ import re
 from climetlab import load_source
 from copy import deepcopy
 from pathlib import Path
+from importlib import resources
 
 M = ["%02d"%d for  d in range(1,13)]
 Y = [str(d) for d in range(2000,2019)]
@@ -292,3 +293,11 @@ def build_multi_request(request, split_on, dataset, key_mapping= {}):
         )
         output_names.append(output_name)
     return sources, output_names
+
+
+
+def get_po_basin():
+    import geopandas as gpd
+    with resources.path("climetlab_cems_flood.data", "po_basin.geojson") as f:
+        data_file_path = f
+    return gpd.read_file(data_file_path)
