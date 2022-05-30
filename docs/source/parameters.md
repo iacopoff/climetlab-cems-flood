@@ -1,72 +1,54 @@
 
-Explain that the class' init parameters are post-processed to form the parameters to a cdsapi request.
 
-# Dataset Parameters
+
+# Parameters
 
 
 ## period
 
 The period indicates the time intervals requested. The time intervals could be continuous from a date to another date or a set of fragmented time intervals.
 
-The syntax follows these rules:
 
-request one date
+Examples that speak a thousand words:
+
+- Request one date
 
 `20010505`
 
-request many dates
+- Request many dates
 
-`20010505/20020505/20030505`
+- `20010505/20020505/20030505`
 
-request a period from a date to a date
+- Request a time interval from a starting date to a end date
 
 `20010101-20011130`
 
-request multiple separated periods
+- Request two (but could be more) non consecutive time intervals
 
 `20180201-20180212/20200101-20200315`
 
-request all first of january
+- Request every first of January
 
 `*0101`
 
-request everything
+- Request everything
 
 `***`
 
-request all the first of the months of a year
+- Request the fifteenth of the month of each month in year 2000
 
-`2000*01`
+`2000*15`
 
-request a period of days for all years and months
-
-
-
-request all months between a starting and ending year
-
-
-
-request all the days for the years from 2001 to 2005 and months from January to May
+- Request every days bweteen 2001 and 2005 and between January and May
 
 `2001-200501-05*`
 
-request the first 5 months and the first 5 days of all years:
+- Request the first 5 months and the days between the 20th and 25th for all years available:
 
-`*01-0501-05`
-
-
+`*01-0520-25`
 
 
-
-There are three symbols that can instruct the interval request:
-The hyphen `-` to indicate that you are requesting a start end
-
-the star `*` to indicate everything and the slash `/` to indicate and.
-a date is in the format %Y%m%d
-
-
-
-You can easily check whether the string is actually returning what you are expecting
+In case you are in doubt, before sending a request you can easily check whether the string is actually returning what you were expecting:
 
 
 ```python
@@ -81,7 +63,39 @@ You can easily check whether the string is actually returning what you are expec
 ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31']
 ```
 
+## area
+
+You can define a bounding box:
+
+`north, west, south, east`
+
+You can also pass a list of areas..
+
+## split_on and threads 
+
+The `split_on` parameter allows splitting the request into multiple requests to the CDS.
+
+For example, this is how you would send a request per year and per month:
+
+```python
+hist = cml.load_dataset(
+            'cems-flood-glofas-historical',
+            model='lisflood',
+            product_type='intermediate',
+            system_version='version_3_1',
+            period= '20000101-20201231',
+            variable="river_discharge_in_the_last_24_hours",
+            split_on = ['hyear','hmonth'],
+            threads = 6,
+        )
+
+```
+
+The `threads` parameters indicate the number of concurrent requests are sent to the CDS. 
+
+Please check the CDS website for how many concurrent request you are allowed to send.
 
 
+It is also possible to split by area in case you are requesting a list of areas
 
-## split on
+## merger

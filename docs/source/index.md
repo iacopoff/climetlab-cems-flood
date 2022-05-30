@@ -12,6 +12,12 @@ This is a plugin of the [CliMetLab](https://climetlab.readthedocs.io/en/latest/i
 
 ## Installation
 
+```python
+pip install climetlab-cems-flood
+```
+
+
+
 ```{toctree}
 :caption: 'Contents:'
 :maxdepth: 2
