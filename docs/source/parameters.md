@@ -3,6 +3,7 @@
 
 # Parameters
 
+...WIP...
 
 ## period
 
@@ -63,6 +64,9 @@ In case you are in doubt, before sending a request you can easily check whether 
 ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31']
 ```
 
+## lat, lon
+
+
 ## area
 
 You can define a bounding box:
@@ -99,3 +103,9 @@ Please check the CDS website for how many concurrent request you are allowed to 
 It is also possible to split by area in case you are requesting a list of areas
 
 ## merger
+
+If the dataset is made up of multiple files, it is possible to merge them using this parameter.
+
+The merger is resposible of combining multiple files when, for example, the `Dataset` is converted to an `xarray.Dataset` with the `to_xarray()` method.
+
+Find more in [CliMetLab documentation](https://climetlab.readthedocs.io/en/latest/) 
