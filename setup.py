@@ -25,12 +25,12 @@ setuptools.setup(
     name=package_name,
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
-    description="A dataset plugin for climetlab for the dataset cems-flood/glofas.",
+    description="Download GloFAS Copernicus Emergency Management System dataset",
     long_description=read("README.md"),
     long_description_content_type="text/markdown",
     author="iacopo ferrario",
-    author_email="iacopo.ferrario@ecmwf.int",
-    url="https://github.com/ecmwf-lab/cems-flood",
+    author_email="iacopo.ff@gmail.com",
+    url="https://github.com/iacopoff/climetlab-cems-flood",
     license="Apache License Version 2.0",
     packages=setuptools.find_packages(),
     include_package_data=True,
@@ -46,7 +46,7 @@ setuptools.setup(
             "cems-flood-glofas-seasonal-reforecast = climetlab_cems_flood.glofas_seasonal_reforecast:GlofasSeasonalReforecast"
         ]
     },
-    keywords="hydrology",
+    keywords=["hydrology","flood","emergency","global","climate"],
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
@@ -56,8 +56,8 @@ setuptools.setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: Implementation :: CPython",
-        "Programming Language :: Python :: Implementation :: PyPy",
         "Operating System :: OS Independent",
     ],
 )

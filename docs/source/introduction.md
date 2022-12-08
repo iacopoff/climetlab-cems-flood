@@ -1,10 +1,6 @@
 
 # Introduction
 
-...WIP...
-
-If you want to download GloFAS data, this is the right tool.
-
 The `climetlab-cems-flood` plugin uses the CliMetLab's machinery and its conceptual framework made of [Datasets](https://climetlab.readthedocs.io/en/latest/guide/datasets.html) and [Data sources](https://climetlab.readthedocs.io/en/latest/guide/sources.html) to programmaticaly download data from the **Climate Data Store (CDS)**.
 
 ```{warning}

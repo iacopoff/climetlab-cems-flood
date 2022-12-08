@@ -3,8 +3,6 @@
 
 # Parameters
 
-...WIP...
-
 ## period
 
 The period indicates the time intervals requested. The time intervals could be continuous from a date to another date or a set of fragmented time intervals.
