@@ -57,7 +57,6 @@ class GlofasSeasonal(Dataset, ReprMixin):
         "If you do not agree with such terms, do not download the data. "
     )
 
-    temporal_range = [2020, date.today().year]
 
     def __init__(
         self,
@@ -80,7 +79,7 @@ class GlofasSeasonal(Dataset, ReprMixin):
         if threads is not None:
             cml.sources.SETTINGS.set("number-of-download-threads", threads)
 
-        self.parser = Parser(self.temporal_range)
+        self.parser = Parser()
 
         years, months, _ = self.parser.period(period)
 

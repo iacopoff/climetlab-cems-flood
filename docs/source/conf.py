@@ -40,7 +40,7 @@ extensions = [
         'sphinx.ext.autosummary',
          "myst_nb",
         # "autoapi.extension",
-        "sphinx.ext.napoleon",
+        "sphinx.ext.napoleon", # formatting code style (scipy, google, etc.)
         "sphinx.ext.viewcode",
         ]
 

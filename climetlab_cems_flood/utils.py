@@ -1,15 +1,17 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from functools import partial
 from itertools import product
 import typing as T
+from typing import List
 import re
 from climetlab import load_source
 from copy import deepcopy
 from pathlib import Path
 from importlib import resources
 
+from . import CONFIG
+
 M = ["%02d"%d for  d in range(1,13)]
-Y = [str(d) for d in range(2000,2019)]
 D = ["%02d"%d for  d in range(1,32)]
 DEFAULT_KEY_MAPPING = {"leadtime_hour":"lh", 
                         "river_discharge_in_the_last_24_hours":"rivo",
@@ -44,46 +46,55 @@ def parser_time_index(start=[2019, 1, 1], end=[2019, 12, 31]):
 
 class Parser:
 
-    def __init__(self,range_years=None):
-        
-        #TODO quite hacky
-        if range_years:
-            setattr(Parser,"Y",[str(d) for d in range(range_years[0],range_years[1]+1)])
-        else:
-            setattr(Parser,"Y",None)
-        
-
+    
     @staticmethod
-    def leadtime(string, step):
+    def leadtime_hour(value: str, leadtime_step: int, **kwargs) -> List:
+        """Default to closed interval
+
+        Parameters
+        ----------
+        value : str
+            _description_
+        leadtime_step : int
+            _description_
+
+        Returns
+        -------
+        List
+            _description_
+        """
         ret = []
-        s = string.split("/")
+        s = value.split("/")
         for chunk in s:
             if "-" in chunk:
-                start, end = chunk.split("-")
-                ret.extend(list(map(str, range(int(start), int(end) + step, step))))
+                start, end = list(map(int,chunk.split("-")))
+                remainder = end % leadtime_step == 0
+                ret.extend(list(map(str, range(start, end + remainder, leadtime_step))))
             else:
                 ret.append(chunk)
 
         return ret
 
     @classmethod
-    def period(cls,string):
-
+    def time_filter(cls, string, **kwargs) -> List:
+        
+        start_year = kwargs.get('start_year') 
+        cls.range_year =[str(y) for y in range(start_year,date.today().year+1)]
         
         PATTERN = {"[0-9]{8}":{}, # most frequent
-                "\*[0-9]{2}[0-9]{2}":[cls.Y,string[1:3],string[3:]],
+                "\*[0-9]{2}[0-9]{2}":[start_year,string[1:3],string[3:]],
                 "[0-9]{4}\*[0-9]{2}":[string[:4],M,string[5:]],
                 "[0-9]{4}[0-9]{2}\*":[string[:4],string[1:3],D],
                 "[0-9]{4}\*\*":[string[:4],M,D],
-                "\*[0-9]{2}\*":[cls.Y,string[1:3],D],
-                "\*\*[0-9]{2}":[cls.Y,M,string[3:]],
-                "\*\*\*":[cls.Y,M,D],
-                "\*[0-9-]{5}\*":[cls.Y,string[1:6],D],
+                "\*[0-9]{2}\*":[start_year,string[1:3],D],
+                "\*\*[0-9]{2}":[start_year,M,string[3:]],
+                "\*\*\*":[start_year,M,D],
+                "\*[0-9-]{5}\*":[start_year,string[1:6],D],
                 "[0-9-]{9}\*\*":[string[:9],M,D],
-                "\*\*[0-9-]{5}":[cls.Y,M,string[3:]],
+                "\*\*[0-9-]{5}":[start_year,M,string[3:]],
 
                 "[0-9-]{9}[0-9-]{5}\*":[string[:9],string[9:14],D],
-                "\*[0-9-]{5}[0-9-]{5}":[cls.Y, string[1:6],string[7:]]
+                "\*[0-9-]{5}[0-9-]{5}":[start_year, string[1:6],string[7:]]
                 }
 
         #_validate(string)
@@ -301,3 +312,17 @@ def get_po_basin():
     with resources.path("climetlab_cems_flood.data", "po_basin.geojson") as f:
         data_file_path = f
     return gpd.read_file(data_file_path)
+
+
+
+def show_request_for_parameter(product, key, value) -> List:    
+    kwargs = CONFIG.get(product, False)
+    if kwargs is None:
+        raise f"Product not in list of supported products. \n Supported products are: {CONFIG.keys()}"
+    try:    
+        p = Parser()
+        method = getattr(p, key)
+        out = method(value,**kwargs)
+    except AttributeError:
+        raise AttributeError(f'Parameter "{key}" does not generate a valid request')
+    return out

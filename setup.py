@@ -39,11 +39,11 @@ setuptools.setup(
     zip_safe=True,
     entry_points={
         "climetlab.datasets": [
-            "cems-flood-glofas-forecast = climetlab_cems_flood.glofas_forecast:GlofasForecast",
-            "cems-flood-glofas-historical = climetlab_cems_flood.glofas_historical:GlofasHistorical",
-            "cems-flood-glofas-reforecast = climetlab_cems_flood.glofas_reforecast:GlofasReforecast",
-            "cems-flood-glofas-seasonal = climetlab_cems_flood.glofas_seasonal:GlofasSeasonal",
-            "cems-flood-glofas-seasonal-reforecast = climetlab_cems_flood.glofas_seasonal_reforecast:GlofasSeasonalReforecast"
+            "glofas-forecast = climetlab_cems_flood.glofas_forecast:GlofasForecast",
+            "glofas-historical = climetlab_cems_flood.glofas_historical:GlofasHistorical",
+            "glofas-reforecast = climetlab_cems_flood.glofas_reforecast:GlofasReforecast",
+            "glofas-seasonal = climetlab_cems_flood.glofas_seasonal:GlofasSeasonal",
+            "glofas-seasonal-reforecast = climetlab_cems_flood.glofas_seasonal_reforecast:GlofasSeasonalReforecast"
         ]
     },
     keywords=["hydrology","flood","emergency","global","climate"],
