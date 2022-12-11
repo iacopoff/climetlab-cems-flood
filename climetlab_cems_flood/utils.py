@@ -9,6 +9,7 @@ from copy import deepcopy
 from pathlib import Path
 from importlib import resources
 
+import requests
 from . import CONFIG
 
 M = ["%02d"%d for  d in range(1,13)]
@@ -78,23 +79,28 @@ class Parser:
     @classmethod
     def time_filter(cls, string, **kwargs) -> List:
         
-        start_year = kwargs.get('start_year') 
-        cls.range_year =[str(y) for y in range(start_year,date.today().year+1)]
+        temporal_coverage = kwargs.get('temporal_coverage') 
+        assert isinstance(temporal_coverage, list)
+        start_year = temporal_coverage[0]
+        end_year = temporal_coverage[-1]
+        
+        cls.range_year = range_year = [str(y) for y in range(start_year,end_year + 1)]
         
         PATTERN = {"[0-9]{8}":{}, # most frequent
-                "\*[0-9]{2}[0-9]{2}":[start_year,string[1:3],string[3:]],
+                "\*[0-9]{2}[0-9]{2}":[range_year,string[1:3],string[3:]],
                 "[0-9]{4}\*[0-9]{2}":[string[:4],M,string[5:]],
-                "[0-9]{4}[0-9]{2}\*":[string[:4],string[1:3],D],
+                "[0-9]{4}[0-9]{2}\*":[string[:4],string[4:6],D],
                 "[0-9]{4}\*\*":[string[:4],M,D],
-                "\*[0-9]{2}\*":[start_year,string[1:3],D],
-                "\*\*[0-9]{2}":[start_year,M,string[3:]],
-                "\*\*\*":[start_year,M,D],
-                "\*[0-9-]{5}\*":[start_year,string[1:6],D],
+                "\*[0-9]{2}\*":[range_year,string[1:3],D],
+                "\*\*[0-9]{2}":[range_year,M,string[2:]],
+                "\*\*\*":[range_year,M,D],
+                "\*[0-9-]{5}\*":[range_year,string[1:6],D],
+                "[0-9]{4}[0-9-]{5}\*":[string[:4],string[4:9],D],
                 "[0-9-]{9}\*\*":[string[:9],M,D],
-                "\*\*[0-9-]{5}":[start_year,M,string[3:]],
+                "\*\*[0-9-]{5}":[range_year,M,string[3:]],
 
                 "[0-9-]{9}[0-9-]{5}\*":[string[:9],string[9:14],D],
-                "\*[0-9-]{5}[0-9-]{5}":[start_year, string[1:6],string[7:]]
+                "\*[0-9-]{5}[0-9-]{5}":[range_year, string[1:6],string[7:]]
                 }
 
         #_validate(string)
@@ -109,34 +115,41 @@ class Parser:
                     break
                 
             years,months,days = list(map(unpack,PATTERN[p]))
+            years, months, days = sorted(ensure_list(years)), sorted(ensure_list(months)), sorted(ensure_list(days))
+        else:
+            
 
+            s = string.split("/")
 
+            years = set()
+            months = set()
+            days = set()
+            for chunk in s:
+                if "-" in chunk: # check "-"
+                    start, end = chunk.split("-")
+                    start = datetime.strptime(start, "%Y%m%d")
+                    end = datetime.strptime(end, "%Y%m%d")
+                    period = [
+                        start + timedelta(days=x) for x in range(0, (end - start).days + 1)
+                    ]
+                    years.update([i.strftime("%Y") for i in period])
+                    months.update([i.strftime("%m") for i in period])
+                    days.update([i.strftime("%d") for i in period])
+                else:
+                    years.update([chunk[:4]])
+                    months.update([chunk[4:6]])
+                    days.update([chunk[6:]])                 
 
-            return sorted(ensure_list(years)), sorted(ensure_list(months)), sorted(ensure_list(days))
-
-        s = string.split("/")
-
-        years = set()
-        months = set()
-        days = set()
-        for chunk in s:
-            if "-" in chunk: # check "-"
-                start, end = chunk.split("-")
-                start = datetime.strptime(start, "%Y%m%d")
-                end = datetime.strptime(end, "%Y%m%d")
-                period = [
-                    start + timedelta(days=x) for x in range(0, (end - start).days + 1)
-                ]
-                years.update([i.strftime("%Y") for i in period])
-                months.update([i.strftime("%m") for i in period])
-                days.update([i.strftime("%d") for i in period])
-            else:
-                years.update([chunk[:4]])
-                months.update([chunk[4:6]])
-                days.update([chunk[6:]])                 
-
-
-        return sorted(list(years)), sorted(list(months)), sorted(list(days))
+            years = sorted(list(years))
+            months = sorted(list(months))
+            days = sorted(list(days))
+            
+        
+        # check request is within temporal coverage
+        if int(years[0]) < start_year or int(years[-1]) > end_year:
+            raise ValueError(f'Time filter is not within temporal coverage {start_year}-{end_year}')
+        
+        return years, months, days
 
 
 
@@ -322,7 +335,25 @@ def show_request_for_parameter(product, key, value) -> List:
     try:    
         p = Parser()
         method = getattr(p, key)
-        out = method(value,**kwargs)
+        years, months, days = method(value, **kwargs)
     except AttributeError:
         raise AttributeError(f'Parameter "{key}" does not generate a valid request')
-    return out
+    print(f"years: {years}")
+    print(f"months: {months}")
+    print(f"days: {days}")
+    return years, months, days
+
+
+
+def api_get_cds_catalog(dataset=None):
+    """Request product metadata. Fall back to cached metadata if request fails. 
+    """
+    if dataset: #request catalog product list
+        URL = f'https://cds.climate.copernicus.eu/api/v2.ui/resources/{dataset}'
+    else:
+        URL = 'https://cds.climate.copernicus.eu/api/v2.ui/resources/'
+    with requests.get(URL) as r:
+        res = r.json()
+        
+    ex = res['structured_data']['temporalCoverage']
+    return ex

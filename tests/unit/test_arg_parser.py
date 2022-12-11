@@ -1,21 +1,19 @@
 import pytest
 from climetlab_cems_flood.utils import Parser
+from climetlab_cems_flood import CONFIG
 
 
 
-
-def assert_period(years,months,days,expected):
-
+def assert_filter_time(years,months,days,expected):
     assert years == expected[0]
     assert months == expected[1]
     assert days == expected[2]
 
-def test_parser_leadtime():
+def test_parser_leadtime_hour():
 
     parser = Parser()
     step = 24
-
-    assert parser.leadtime("24-72/480-600", step) == [
+    assert parser.leadtime_hour("24-72/480-600", step) == [
         "24",
         "48",
         "72",
@@ -27,7 +25,7 @@ def test_parser_leadtime():
         "600",
     ]
 
-    assert parser.leadtime("24-600", step) == [
+    assert parser.leadtime_hour("24-600", step) == [
         "24",
         "48",
         "72",
@@ -55,7 +53,7 @@ def test_parser_leadtime():
         "600",
     ]
 
-    assert parser.leadtime("24-72/240-336/480-600", step) == [
+    assert parser.leadtime_hour("24-72/240-336/480-600", step) == [
         "24",
         "48",
         "72",
@@ -119,17 +117,16 @@ def test_parser_leadtime():
 def test_parser_period(string,expected):
     
     parser = Parser()
+    
+    years, months, days = parser.time_filter(string, **CONFIG['glofas-historical']) 
 
-
-    years, months, days = parser.period(string)
-
-    assert_period(years,months,days,expected)
+    assert_filter_time(years,months,days,expected)
 
 @pytest.mark.parametrize("string, expected",[
                                                 (
                                                     "*0101",
                                                     [
-                                                    ["%d"%y for y in range(1979,2022,1)],
+                                                    ["%d"%y for y in range(1979,2023,1)],
                                                     ["01"],
                                                     ["01"]
                                                     ]
@@ -137,7 +134,7 @@ def test_parser_period(string,expected):
                                                                                                 (
                                                     "***",
                                                     [
-                                                    ["%d"%y for y in range(1979,2022,1)],
+                                                    ["%d"%y for y in range(1979,2023,1)],
                                                     ["%02d"%m for m in range(1,13)],
                                                     ["%02d"%d for d in range(1,32)]
                                                     ]
@@ -153,7 +150,7 @@ def test_parser_period(string,expected):
                                                 (
                                                     "*10-12*",
                                                     [
-                                                      ["%d"%y for y in range(1979,2022,1)],
+                                                      ["%d"%y for y in range(1979,2023,1)],
                                                       ["10","11","12"],
                                                       ["%02d"%d for d in range(1,32)]  
                                                     ]
@@ -171,7 +168,7 @@ def test_parser_period(string,expected):
                                                 (
                                                     "**01-08",
                                                     [
-                                                      ["%d"%y for y in range(1979,2022,1)],
+                                                      ["%d"%y for y in range(1979,2023,1)],
                                                       ["%02d"%m for m in range(1,13)],
                                                       ["01","02","03","04","05","06","07","08"]  
                                                     ]
@@ -189,7 +186,7 @@ def test_parser_period(string,expected):
                                                                                                 (
                                                     "*01-0501-05",
                                                     [
-                                                      ["%d"%y for y in range(1979,2022,1)],
+                                                      ["%d"%y for y in range(1979,2023,1)],
                                                       ["%02d"%m for m in range(1,6)],
                                                       ["%02d"%d for d in range(1,6)] 
                                                     ]
@@ -200,8 +197,9 @@ def test_parser_period(string,expected):
                         )
 def test_parser_period_star_param(string,expected):
 
-    parser = Parser([1979,2021])
+    parser = Parser()
 
-    years, months, days = parser.period(string)
+    years, months, days = parser.time_filter(string, **CONFIG['glofas-historical']) 
 
-    assert_period(years,months,days,expected)
+
+    assert_filter_time(years,months,days,expected)
