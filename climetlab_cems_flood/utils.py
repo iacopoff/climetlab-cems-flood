@@ -12,11 +12,14 @@ from importlib import resources
 import requests
 from . import CONFIG
 
+class NotSupportedQuery(Exception):
+    pass
+
 M = ["%02d"%d for  d in range(1,13)]
 D = ["%02d"%d for  d in range(1,32)]
 DEFAULT_KEY_MAPPING = {"leadtime_hour":"lh", 
                         "river_discharge_in_the_last_24_hours":"rivo",
-                        'control_forecast':'cf',
+                        'control_forecast':'cf',    
                         'snow_melt_water_equivalent':'swe'}
 
 class StringNotValidError(Exception):
@@ -44,7 +47,41 @@ def parser_time_index(start=[2019, 1, 1], end=[2019, 12, 31]):
 
     return index
 
+def ensure_list_of_str(l):
+    l0 = [int(i) for i in l]
+    return [str(i) if i >= 10 else f"0{str(i)}" for i in l0 ]
 
+
+
+def branch(x, dc_map):
+    if re.fullmatch("((\d{4} \d{2} \d{2})(\/|$))+", x) and len(x)> 10: # not contiguous sequence list of dates
+        # this query need to be handled differently as one request per date should be sent
+        raise NotSupportedQuery
+    elif re.fullmatch("((\d{4} \d{2} \d{2})(-|$))+", x) and len(x)> 10: # contiguous sequence of dates
+        # this query need to be handled differently as the CDS does not works with from-to dates but ranges of years, months, days
+        raise NotSupportedQuery
+    else:
+        out = split(x, dc_map)
+    return out 
+def split(string: str, dc_map):
+
+    date_components = string.split(" ") # %Y %m %d
+
+    out = []
+    for i, dc in enumerate(date_components):
+        if "-" in dc:
+            dc_from, dc_to = [*map(int, dc.split("-"))]
+            out.insert(i, ensure_list_of_str([*range(dc_from, dc_to + 1)]))
+        elif "/" in dc:
+            out.insert(i, ensure_list_of_str(dc.split("/")))
+        elif "*" in dc:
+            out.insert(i, ensure_list_of_str(dc_map[i]))
+        else:  # not a list
+            out.insert(i, ensure_list(dc))
+
+    return out
+
+          
 class Parser:
 
     
@@ -85,65 +122,15 @@ class Parser:
         end_year = temporal_coverage[-1]
         
         cls.range_year = range_year = [str(y) for y in range(start_year,end_year + 1)]
+
+        dc_map = {
+            0: range_year, # year
+            1: [d for  d in range(1,13)],
+            2: [d for  d in range(1,32)],
+        }  
+
         
-        PATTERN = {"[0-9]{8}":{}, # most frequent
-                "\*[0-9]{2}[0-9]{2}":[range_year,string[1:3],string[3:]],
-                "[0-9]{4}\*[0-9]{2}":[string[:4],M,string[5:]],
-                "[0-9]{4}[0-9]{2}\*":[string[:4],string[4:6],D],
-                "[0-9]{4}\*\*":[string[:4],M,D],
-                "\*[0-9]{2}\*":[range_year,string[1:3],D],
-                "\*\*[0-9]{2}":[range_year,M,string[2:]],
-                "\*\*\*":[range_year,M,D],
-                "\*[0-9-]{5}\*":[range_year,string[1:6],D],
-                "[0-9]{4}[0-9-]{5}\*":[string[:4],string[4:9],D],
-                "[0-9-]{9}\*\*":[string[:9],M,D],
-                "\*\*[0-9-]{5}":[range_year,M,string[3:]],
-
-                "[0-9-]{9}[0-9-]{5}\*":[string[:9],string[9:14],D],
-                "\*[0-9-]{5}[0-9-]{5}":[range_year, string[1:6],string[7:]]
-                }
-
-        #_validate(string)
-
-        if "*" in string:
-            years = set()
-            months = set()
-            days = set()     
-            match = None
-            for p in PATTERN:
-                if re.match(p,string):
-                    break
-                
-            years,months,days = list(map(unpack,PATTERN[p]))
-            years, months, days = sorted(ensure_list(years)), sorted(ensure_list(months)), sorted(ensure_list(days))
-        else:
-            
-
-            s = string.split("/")
-
-            years = set()
-            months = set()
-            days = set()
-            for chunk in s:
-                if "-" in chunk: # check "-"
-                    start, end = chunk.split("-")
-                    start = datetime.strptime(start, "%Y%m%d")
-                    end = datetime.strptime(end, "%Y%m%d")
-                    period = [
-                        start + timedelta(days=x) for x in range(0, (end - start).days + 1)
-                    ]
-                    years.update([i.strftime("%Y") for i in period])
-                    months.update([i.strftime("%m") for i in period])
-                    days.update([i.strftime("%d") for i in period])
-                else:
-                    years.update([chunk[:4]])
-                    months.update([chunk[4:6]])
-                    days.update([chunk[6:]])                 
-
-            years = sorted(list(years))
-            months = sorted(list(months))
-            days = sorted(list(days))
-            
+        years,months,days = branch(string, dc_map)
         
         # check request is within temporal coverage
         if int(years[0]) < start_year or int(years[-1]) > end_year:
