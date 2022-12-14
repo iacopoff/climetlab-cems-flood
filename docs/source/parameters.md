@@ -3,48 +3,17 @@
 
 # Parameters
 
-## period
+## time_filter
 
-The period indicates the time intervals requested. The time intervals could be continuous from a date to another date or a set of fragmented time intervals.
+There are different options for selecting multiple non consecutive or consecutive years, months, days. 
 
-
-Examples that speak a thousand words:
-
-- Request one date
-
-`20010505`
-
-- Request many dates
-
-- `20010505/20020505/20030505`
-
-- Request a time interval from a starting date to a end date
-
-`20010101-20011130`
-
-- Request two (but could be more) non consecutive time intervals
-
-`20180201-20180212/20200101-20200315`
-
-- Request every first of January
-
-`*0101`
-
-- Request everything
-
-`***`
-
-- Request the fifteenth of the month of each month in year 2000
-
-`2000*15`
-
-- Request every days bweteen 2001 and 2005 and between January and May
-
-`2001-200501-05*`
-
-- Request the first 5 months and the days between the 20th and 25th for all years available:
-
-`*01-0520-25`
+|        |  year | month |  day  |  example      | explanation |
+|--------|:-----:|:-----:|:-----:|---------------|-------------|
+|**operator**|       |       |       |               |             |
+|        |   %Y  |   %m  |   %d  |2000 01 01     |             |
+|**-** (from-to) | %Y-%Y | %m-%m | %d-%d |2000 01-10 01  |             |
+|**/** (and)     | %Y/%Y | %m/%m | %d/%d |2000/2003/2005 01 01|             |
+|**\*** (all)     |   *   |   *   |   *   |* 01 01        |             |
 
 
 In case you are in doubt, before sending a request you can easily check whether the string is actually returning what you were expecting:
