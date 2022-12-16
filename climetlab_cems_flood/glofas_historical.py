@@ -11,31 +11,7 @@ from functools import partial
 
 
 class GlofasHistorical(Dataset, ReprMixin):
-    """_summary_
 
-    :param system_version: _description_
-    :type system_version: _type_
-    :param product_type: _description_
-    :type product_type: _type_
-    :param model: _description_
-    :type model: _type_
-    :param variable: _description_
-    :type variable: _type_
-    :param period: _description_
-    :type period: _type_
-    :param area: _description_, defaults to None
-    :type area: _type_, optional
-    :param lat: _description_, defaults to None
-    :type lat: _type_, optional
-    :param lon: _description_, defaults to None
-    :type lon: _type_, optional
-    :param split_on: _description_, defaults to None
-    :type split_on: _type_, optional
-    :param threads: _description_, defaults to None
-    :type threads: _type_, optional
-    :param merger: _description_, defaults to False
-    :type merger: bool, optional
-    """
     name = None
     home_page = "https://cds.climate.copernicus.eu/cdsapp#!/dataset/cems-glofas-historical?tab=overview"
     licence = "https://cds.climate.copernicus.eu/api/v2/terms/static/cems-floods.pdf"
@@ -58,21 +34,21 @@ class GlofasHistorical(Dataset, ReprMixin):
         product_type,
         model,
         variable,
-        period,
+        temporal_filter,
         area=None,
         lat=None,
         lon=None,
         split_on=None,
         threads=None,
-        merger=False
+        merger=None
     ): 
 
         if threads is not None:
             cml.sources.SETTINGS.set("number-of-download-threads", threads)
             
-        self.parser = Parser(self.temporal_range)
+        self.parser = Parser('glofas-historical')
 
-        years, months, days = self.parser.period(period)
+        years, months, days = self.parser.temporal_filter(temporal_filter)
 
         months = months_num2str(months)
             

@@ -84,6 +84,8 @@ def split(string: str, dc_map):
           
 class Parser:
 
+    def __init__(self, product):
+        self.product = product
     
     @staticmethod
     def leadtime_hour(value: str, leadtime_step: int, **kwargs) -> List:
@@ -113,15 +115,14 @@ class Parser:
 
         return ret
 
-    @classmethod
-    def time_filter(cls, string, **kwargs) -> List:
+    def temporal_filter(self, string, **kwargs) -> List:
         
-        temporal_coverage = kwargs.get('temporal_coverage') 
+        temporal_coverage = CONFIG.get(self.product).get('temporal_coverage') 
         assert isinstance(temporal_coverage, list)
         start_year = temporal_coverage[0]
         end_year = temporal_coverage[-1]
         
-        cls.range_year = range_year = [str(y) for y in range(start_year,end_year + 1)]
+        self.range_year = range_year = [str(y) for y in range(start_year,end_year + 1)]
 
         dc_map = {
             0: range_year, # year
@@ -177,7 +178,7 @@ def handle_cropping_area(request, area, lat, lon):
         lat, lon = list(map(ensure_list,[lat,lon]))
         for la,lo in zip(lat,lon):
             area.extend([la,lo,la,lo]) # N/W/S/E
-
+    print(area)
     if isinstance(area, list):  
         request.update({"area":area})
     elif type(area).__name__ == 'GeoDataFrame' or type(area).__name__ == 'GeoSeries':
@@ -315,12 +316,12 @@ def get_po_basin():
 
 
 
-def show_request_for_parameter(product, key, value) -> List:    
+def show_request_for_parameter(product, key, value, return_output = False) -> List:    
     kwargs = CONFIG.get(product, False)
     if kwargs is None:
         raise f"Product not in list of supported products. \n Supported products are: {CONFIG.keys()}"
     try:    
-        p = Parser()
+        p = Parser(product)
         method = getattr(p, key)
         years, months, days = method(value, **kwargs)
     except AttributeError:
@@ -328,7 +329,8 @@ def show_request_for_parameter(product, key, value) -> List:
     print(f"years: {years}")
     print(f"months: {months}")
     print(f"days: {days}")
-    return years, months, days
+    if return_output:
+        return years, months, days
 
 
 

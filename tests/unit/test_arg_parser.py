@@ -11,7 +11,7 @@ def assert_filter_time(years,months,days,expected):
 
 def test_parser_leadtime_hour():
 
-    parser = Parser()
+    parser = Parser('glofas-historical')
     step = 24
     assert parser.leadtime_hour("24-72/480-600", step) == [
         "24",
@@ -116,9 +116,9 @@ def test_parser_leadtime_hour():
                         ) # expected = [[years],[months],[days]]
 def test_parser_period(string,expected):
     
-    parser = Parser()
+    parser = Parser('glofas-historical')
     
-    years, months, days = parser.time_filter(string, **CONFIG['glofas-historical']) 
+    years, months, days = parser.temporal_filter(string) 
 
     assert_filter_time(years,months,days,expected)
 
@@ -197,9 +197,9 @@ def test_parser_period(string,expected):
                         )
 def test_parser_period_star_param(string,expected):
 
-    parser = Parser()
+    parser = Parser('glofas-historical')
 
-    years, months, days = parser.time_filter(string, **CONFIG['glofas-historical']) 
+    years, months, days = parser.temporal_filter(string) 
 
 
     assert_filter_time(years,months,days,expected)

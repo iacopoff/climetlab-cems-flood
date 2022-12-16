@@ -17,33 +17,7 @@ from .utils import (
 
 
 
-class GlofasSeasonal(Dataset, ReprMixin):
-    """_summary_
-
-    :param system_version: _description_
-    :type system_version: _type_
-    :param model: _description_
-    :type model: _type_
-    :param variable: _description_
-    :type variable: _type_
-    :param period: _description_
-    :type period: _type_
-    :param leadtime_hour: _description_
-    :type leadtime_hour: _type_
-    :param area: _description_, defaults to None
-    :type area: _type_, optional
-    :param lat: _description_, defaults to None
-    :type lat: _type_, optional
-    :param lon: _description_, defaults to None
-    :type lon: _type_, optional
-    :param split_on: _description_, defaults to None
-    :type split_on: _type_, optional
-    :param threads: _description_, defaults to None
-    :type threads: _type_, optional
-    :param merger: _description_, defaults to False
-    :type merger: bool, optional
-        """
-        
+class GlofasSeasonal(Dataset, ReprMixin): 
     name = None
     home_page = "-"
     licence = "-"
@@ -63,14 +37,14 @@ class GlofasSeasonal(Dataset, ReprMixin):
         system_version,
         model,
         variable,
-        period,
+        temporal_filter,
         leadtime_hour,
         area=None,
         lat=None,
         lon=None,
         split_on=None,
         threads=None,
-        merger=False
+        merger=None
     ):
         """Constructor method
         """
@@ -79,11 +53,11 @@ class GlofasSeasonal(Dataset, ReprMixin):
         if threads is not None:
             cml.sources.SETTINGS.set("number-of-download-threads", threads)
 
-        self.parser = Parser()
+        self.parser = Parser('glofas-seasonal')
 
-        years, months, _ = self.parser.period(period)
+        years, months, _ = self.parser.temporal_filter(temporal_filter)
 
-        leadtime_hour = self.parser.leadtime(leadtime_hour, 24)
+        leadtime_hour = self.parser.leadtime_hour(leadtime_hour, 24)
 
         self.request = {
             "system_version": system_version,
