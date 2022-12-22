@@ -5,7 +5,7 @@ from datetime import date
 import climetlab as cml
 from climetlab import Dataset
 
-from .utils import Parser, ReprMixin, months_num2str, handle_cropping_area,build_multi_request
+from .utils import Parser, ReprMixin, months_num2str, preprocess_spatial_filter, build_multi_request
 
 from functools import partial
 
@@ -38,6 +38,7 @@ class GlofasHistorical(Dataset, ReprMixin):
         area=None,
         lat=None,
         lon=None,
+        coords=None,
         split_on=None,
         threads=None,
         merger=None
@@ -63,7 +64,7 @@ class GlofasHistorical(Dataset, ReprMixin):
             "format": "grib",
         }
 
-        handle_cropping_area(self.request, area, lat, lon)
+        preprocess_spatial_filter(self.request, area, coords)
        
         if split_on is not None:
             sources, output_names = build_multi_request(self.request, split_on, dataset ='cems-glofas-historical')

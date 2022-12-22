@@ -10,7 +10,7 @@ import cf2cdm
 from .utils import (
     Parser,
     ReprMixin,
-    handle_cropping_area,
+    preprocess_spatial_filter,
     build_multi_request
 )
 
@@ -69,7 +69,7 @@ class GlofasSeasonal(Dataset, ReprMixin):
             "format": "grib",
         }
 
-        handle_cropping_area(self.request, area, lat, lon)
+        preprocess_spatial_filter(self.request, area, lat, lon)
 
         if split_on is not None:
             sources, output_names = build_multi_request(self.request, split_on, dataset ='cems-glofas-seasonal')
