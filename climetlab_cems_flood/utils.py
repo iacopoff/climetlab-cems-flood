@@ -247,6 +247,9 @@ class ReprMixin:
                 if not p.exists():
                     ds.to_netcdf(p)
 
+    def show_coords(self):
+        pass
+    
     def _repr_html_(self):
         ret = super()._repr_html_()
 
