@@ -64,18 +64,18 @@ class GlofasHistorical(Dataset, ReprMixin):
             "format": "grib",
         }
 
-        preprocess_spatial_filter(self.request, area, coords)
-       
+        self._sf_ids = preprocess_spatial_filter(self.request, area, coords)
+        print(self.request)
+        print(self._sf_ids)
         if split_on is not None:
-            sources, output_names = build_multi_request(self.request, split_on, dataset ='cems-glofas-historical')
-            self.output_names = output_names
+            sources, file_output_names = build_multi_request(self.request, split_on, self._sf_ids, dataset='cems-glofas-historical')
+            self.output_names = file_output_names
             self.source = cml.load_source("multi", sources, merger=merger)
-            
         else:
             self.output_names = None
             self.source = cml.load_source("cds", "cems-glofas-historical", **self.request)
-            
+
     def to_xarray(self):
-        return self.source.to_xarray(backend_kwargs={'time_dims':['time']}).isel(surface=0, step=0, drop=True).drop_vars(["valid_time"])
+        return self.source.to_xarray(backend_kwargs={'time_dims': ['time']}).isel(surface=0, step=0, drop=True).drop_vars(["valid_time"])
 
 

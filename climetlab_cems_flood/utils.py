@@ -1,31 +1,27 @@
-from datetime import datetime, timedelta, date
+from re import fullmatch
+from requests import get
+from datetime import datetime, timedelta
 from functools import partial
 from itertools import product, chain
-import typing as T
-from typing import List, Union
-import re
-from climetlab import load_source
+from typing import List, Dict
 from copy import deepcopy
 from pathlib import Path
 from importlib import resources
-
 from collections.abc import Iterable
-import requests
+
+from climetlab import load_source
 from . import CONFIG
 
-
-class NotSupportedQuery(Exception):
-    pass
-
-
-M = ["%02d" % d for d in range(1, 13)]
-D = ["%02d" % d for d in range(1, 32)]
 DEFAULT_KEY_MAPPING = {
     "leadtime_hour": "lh",
     "river_discharge_in_the_last_24_hours": "rivo",
     "control_forecast": "cf",
     "snow_melt_water_equivalent": "swe",
 }
+
+
+class NotSupportedQuery(Exception):
+    pass
 
 
 class StringNotValidError(Exception):
@@ -61,12 +57,12 @@ def ensure_list_of_str(l):
 
 def branch(x, dc_map):
     if (
-        re.fullmatch("((\d{4} \d{2} \d{2})(\/|$))+", x) and len(x) > 10
+        fullmatch("((\d{4} \d{2} \d{2})(\/|$))+", x) and len(x) > 10
     ):  # not contiguous sequence list of dates
         # this query need to be handled differently as one request per date should be sent
         raise NotSupportedQuery
     elif (
-        re.fullmatch("((\d{4} \d{2} \d{2})(-|$))+", x) and len(x) > 10
+        fullmatch("((\d{4} \d{2} \d{2})(-|$))+", x) and len(x) > 10
     ):  # contiguous sequence of dates
         # this query need to be handled differently as the CDS does not works with from-to dates but ranges of years, months, days
         raise NotSupportedQuery
@@ -152,16 +148,7 @@ class Parser:
         return years, months, days
 
 
-def _validate(string):
-    if ("*" in string and "-" in string) or ("*" in string and "/" in string):
-        raise StringNotValidError(
-            string, " '*' and '-' or '*' and '/' are not allowed in the same string"
-        )
-    else:
-        pass
-
-
-def months_num2str(months: T.List[str]):
+def months_num2str(months: List[str]):
     mapping = {
         "01": "january",
         "02": "february",
@@ -179,41 +166,47 @@ def months_num2str(months: T.List[str]):
     return [mapping.get(m) for m in months if mapping.get(m)]
 
 
-def unpack(string):
-    try:
-        string.split("-")
-        start, end = string.split("-")
-        if len(start) <= 2:
-            return ["%02d" % d for d in range(int(start), int(end) + 1)]
-        elif len(start) > 2:
-            return [str(d) for d in range(int(start), int(end) + 1)]
-    except:
-        return string
+def ismulty(x: list | tuple | str | dict):
+    cond1 = all([isinstance(i, Iterable) and not isinstance(i, str) for i in x])
+    cond2 = len(x) > 1
+    return cond1 and cond2
 
 
-def ismulty(x: list | tuple | str):
-    return all([isinstance(i, Iterable) and not isinstance(i, str) for i in x])
-
-
-def preprocess_spatial_filter(request, area, coords):
-
+def preprocess_spatial_filter(request, area: List[Dict], coords: List[Dict]) -> List[str]:
+    ids = [] 
+    cds_area: List[List] = []
     if coords is not None:
         if area is not None:
             raise ValueError("area AND coords are not allowed together")
-        area = []
         if ismulty(coords):
-            for c in coords:
-                lat, lon = c
-                area.append([lat, lon, lat, lon])  # N/W/S/E
+            for coord in coords:
+                lat = coord.get('lat')
+                lon = coord.get('lon')
+                cds_area.append([lat, lon, lat, lon])  # N/W/S/E
+                ids.append(coord.get('name'))
         else:
-            area = coords
-
-    if isinstance(area, list):
-        request.update({"area": area})
+            lat = coords[0].get('lat')
+            lon = coords[0].get('lon')
+            cds_area = [lat, lon, lat, lon]   # N/W/S/E
+            ids.append(coords[0].get('name'))
+    if area is not None:
+        if coords is not None:
+            raise ValueError("area AND coords are not allowed together")
+        if ismulty(area):
+            for a in area:
+                ids.append(a.get('name'))
+                cds_area.append(a.get('area'))
+        else:
+            cds_area = area[0].get('area')
+            ids.append(area[0].get('name'))
+    
+    if isinstance(cds_area, list):
+        request.update({"area": cds_area})
     elif type(area).__name__ == "GeoDataFrame" or type(area).__name__ == "GeoSeries":
         W, S, E, N = area.unary_union.bounds  # (minx, miny, maxx, maxy)
         bounds = [N, W, S, E]
         request.update({"area": bounds})
+    return ids
 
 
 class ReprMixin:
@@ -245,9 +238,11 @@ class ReprMixin:
             if not p.exists():
                 ds.to_netcdf(p)
         else:
-            for i, src in enumerate(self.source.sources):
-                ds = src.to_xarray()
+            for i, src in enumerate(self.source.indexes): # self.source.sources
+                ds = src.to_xarray(backend_kwargs={'time_dims': ['time']}).isel(surface=0, step=0, drop=True).drop_vars(["valid_time"])
                 p = self.output_path[i].with_suffix(".nc")
+                stem = self.output_path[i].stem.split("_")[-1]
+                ds = ds.expand_dims({"station": [stem]})
                 paths.append(p)
                 if not p.exists():
                     ds.to_netcdf(p)
@@ -279,41 +274,78 @@ def validate_params(func):
     return inner
 
 
-def chunking(requested_param_values: tuple[str], chunk_size: int) -> list[list[str]]:
-    """ """
-    chunks = [
-        requested_param_values[i : i + chunk_size]
-        for i in range(0, len(requested_param_values), chunk_size)
-    ]
-    if ismulty(requested_param_values):
-        chunks = list(chain(*chunks))
+def chunking(param, requested_param_values: List[List], chunk_size: int) -> list[list[str]]:
+    
+    if param == 'area' or param == 'coords':
+        if ismulty(requested_param_values):
+            chunks = [
+                requested_param_values[i : i + chunk_size]
+                for i in range(0, len(requested_param_values), chunk_size)
+            ]
+            chunks = list(chain(*chunks))
+        else:
+            chunks = [requested_param_values]
+    else:
+        chunks = [
+            requested_param_values[i : i + chunk_size]
+            for i in range(0, len(requested_param_values), chunk_size)
+        ]
     return chunks
 
 
-def translate(chunk: tuple[list[str]], param_spliton_names, key_mapping):
+def generate_output_name(subreq, subreq_params, sf_id, key_mapping) -> str:
+    """Generate an output name for every subrequest. To be used by conversion methods. 
+    
+    ex:
+    output_name = <param1>-<values1>_<param2>-<values2> ...
+    Parameters
+    ----------
+    subreq : _type_
+        _description_
+    subreq_params : _type_
+        _description_
+    sf_id : _type_
+        _description_
+    key_mapping : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     mapping = DEFAULT_KEY_MAPPING | key_mapping
     strings = []
-    for param_values, param_name in zip(chunk, param_spliton_names):
-        if param_name == "area":
-            p = list(
-                map(str, param_values)
-            )  # TO DO: this whould be ensured at a higher level, when validating the user's request dictionary
-            val_name = "-".join(p)
-        elif len(param_values) < 2:
-            val_name = param_values[0]
+    for values, param in zip(subreq, subreq_params):
+        if param == "area":
+            val_name = sf_id
+        elif len(values) >= 2:
+            val_name = f"{values[0]}-{values[-1]}"
         else:
-            val_name = f"{param_values[0]}-{param_values[-1]}"
-        param_name = mapping.get(param_name, param_name)
+            val_name = values[0]
+        param = mapping.get(param, param)
         val_name = mapping.get(val_name, val_name)
-        strings.append("-".join([param_name, val_name]))
+        strings.append("-".join([param, val_name]))
     return "_".join(strings)
 
 
+def validate_spliton(split_on):
+    r_split_on, param_names = [], []
+    for subreq in split_on:
+        if isinstance(subreq, tuple):
+            r_split_on.append(subreq)
+            param_names.append(subreq[0])
+        else:
+            r_split_on.append((subreq, 1))
+            param_names.append(subreq)
+    return r_split_on, param_names
+
+
 def build_multi_request(
-    request: dict, split_on: List[tuple | str], dataset: str, key_mapping={}
+    request: dict, split_on: List[tuple | str], sf_ids: List[str], dataset: str, key_mapping={}
 ):
     """
-    Takes a request and splits it in indepedent sub-requests based on the `split_on` parameter.
+    Takes a request and splits it in indepedent sub-requests defined by `split_on`.
 
     Parameters
     ----------
@@ -336,39 +368,39 @@ def build_multi_request(
         _description_
     """
 
-    def validate_spliton(split_on):
-        return [
-            subreq if isinstance(subreq, tuple) else (subreq, 1) for subreq in split_on
-        ]
+    split_on, subreq_params = validate_spliton(split_on)
 
-    split_on = validate_spliton(split_on)
-    param_names = [
-        subreq[0] if isinstance(subreq, tuple) else subreq for subreq in split_on
-    ]
-    if "coords" in param_names:  # request split by coords
-        param_names[param_names.index("coords")] = "area"
+    # The request to the CDS always requires an 'area' keyword
+    if "coords" in subreq_params:
+        subreq_params[subreq_params.index("coords")] = "area"
         split_on = [("area", t[1]) if "coords" in t else t for t in split_on]
 
     if (
-        "area" not in param_names
+        "area" not in subreq_params
         and "area" in request.keys()
         and ismulty(request["area"])
     ):
         raise ValueError(
-            "If requesting multiple coords or areas, you should split_on that"
+            "If requesting to split by multiple coords or areas, you should add 'area' or 'coords' to split_on"
         )
-    sources, output_names = [], []
+    sources, file_output_names = [], []
     subrequests = list(
-        product(*[chunking(request[subreq[0]], subreq[1]) for subreq in split_on])
+        product(*[chunking(subreq[0], request[subreq[0]], subreq[1]) for subreq in split_on])
     )
-    for subrequest in subrequests:
-        output_name = translate(subrequest, param_names, key_mapping)
-        d = {k[0]: v for k, v in zip(split_on, subrequest)}
-        r = deepcopy(request)
-        r.update(d)
-        sources.append(partial(load_source, "cds", dataset, r))
-        output_names.append(output_name)
-    return sources, output_names
+    len_subreqs = len(subrequests) // len(sf_ids)
+    sf_ids = list(chain(*[[i]*len_subreqs for i in sf_ids]))
+    
+    for i, subreq in enumerate(subrequests):
+        new_req = deepcopy(request)
+        subreq_dict = {k: v for k, v in zip(subreq_params, subreq)}
+        new_req.update(subreq_dict)
+        sources.append(partial(load_source, "cds", dataset, new_req))
+        if len(sf_ids) > 1: 
+            file_output_names.append(generate_output_name(subreq, subreq_params, sf_ids[i] , key_mapping))
+        else:
+            file_output_names.append(generate_output_name(subreq, subreq_params, sf_ids[0] , key_mapping))
+        
+    return sources, file_output_names
 
 
 def get_po_basin():
@@ -402,7 +434,7 @@ def api_get_cds_catalog(dataset=None):
         URL = f"https://cds.climate.copernicus.eu/api/v2.ui/resources/{dataset}"
     else:
         URL = "https://cds.climate.copernicus.eu/api/v2.ui/resources/"
-    with requests.get(URL) as r:
+    with get(URL) as r:
         res = r.json()
 
     ex = res["structured_data"]["temporalCoverage"]
