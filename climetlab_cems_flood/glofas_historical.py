@@ -5,12 +5,12 @@ from datetime import date
 import climetlab as cml
 from climetlab import Dataset
 
-from .utils import Parser, ReprMixin, months_num2str, preprocess_spatial_filter, build_multi_request, xarray_opendataset_config, store_request_param
+from .utils import Parser, CommonMixin, months_num2str, preprocess_spatial_filter, build_multi_request, xarray_opendataset_config, store_request_param
 
 from functools import partial
 
 
-class GlofasHistorical(Dataset, ReprMixin):
+class GlofasHistorical(Dataset, CommonMixin):
 
     name = None
     home_page = "https://cds.climate.copernicus.eu/cdsapp#!/dataset/cems-glofas-historical?tab=overview"

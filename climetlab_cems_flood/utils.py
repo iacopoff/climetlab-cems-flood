@@ -229,7 +229,7 @@ def xarray_opendataset_config(src, dataset):
     return ret
     
 
-class ReprMixin:
+class CommonMixin:
     def _set_paths(self, output_folder, output_name_prefix):
         self.output_folder = Path(output_folder)
         self.output_name_prefix = output_name_prefix
@@ -269,7 +269,10 @@ class ReprMixin:
                     ds.to_netcdf(p)
 
     def show_coords(self, name):
-        from matplotlib import pyplot as plt
+        try:
+            from matplotlib import pyplot as plt
+        except ImportError:
+            raise ImportError('show_coords requires matplotilb!')
         for i, n in enumerate(self.output_names):
             if name in n: break
         src = self.source.indexes[i] # self.source.sources
@@ -278,6 +281,7 @@ class ReprMixin:
         ds.isel(time=0).dis24.plot.pcolormesh(ax=ax)
         coords = [c for c in self.param_coords if name in c['name']]
         ax.scatter(coords[0]['lon'], coords[0]['lat'], c="red", s=10)
+        ax.annotate(coords[0]['name'], xy=(coords[0]['lon'], coords[0]['lat']),  xycoords='data')
     
     def _repr_html_(self):
         ret = super()._repr_html_()
