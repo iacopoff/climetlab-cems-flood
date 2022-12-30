@@ -1,4 +1,4 @@
-from re import fullmatch
+from re import fullmatch, search
 from requests import get
 from datetime import datetime, timedelta
 from functools import partial
@@ -208,6 +208,26 @@ def preprocess_spatial_filter(request, area: List[Dict], coords: List[Dict]) -> 
         request.update({"area": bounds})
     return ids
 
+def store_request_param(klass, params = [], values = []):
+    for param, value in zip(params, values):
+        setattr(klass, param, value )
+
+
+def xarray_opendataset_config(src, dataset):
+    if 'historical' in dataset:
+        ret = src.to_xarray(backend_kwargs={'time_dims': ['time']})
+        try:
+            #ret = ret.drop_dims(["step", "surface"]) This drops also the Variable
+            ret = ret.isel(step=0, surface=0, drop=True)
+        except ValueError:
+            ret = ret.drop_vars(["step", "surface"])
+        try:
+            ret = ret.drop_vars(["valid_time"])
+        except ValueError:
+            pass
+        
+    return ret
+    
 
 class ReprMixin:
     def _set_paths(self, output_folder, output_name_prefix):
@@ -239,16 +259,25 @@ class ReprMixin:
                 ds.to_netcdf(p)
         else:
             for i, src in enumerate(self.source.indexes): # self.source.sources
-                ds = src.to_xarray(backend_kwargs={'time_dims': ['time']}).isel(surface=0, step=0, drop=True).drop_vars(["valid_time"])
+                ds = xarray_opendataset_config(src, self.name)
                 p = self.output_path[i].with_suffix(".nc")
-                stem = self.output_path[i].stem.split("_")[-1]
-                ds = ds.expand_dims({"station": [stem]})
+                # match = search("(area[a-z0-9?-]*)", self.output_path[i].stem).group()
+                # stem = match.split("-")[-1]
+                # ds = ds.expand_dims({"sfid": [stem]})
                 paths.append(p)
                 if not p.exists():
                     ds.to_netcdf(p)
 
-    def show_coords(self):
-        pass
+    def show_coords(self, name):
+        from matplotlib import pyplot as plt
+        for i, n in enumerate(self.output_names):
+            if name in n: break
+        src = self.source.indexes[i] # self.source.sources
+        ds = xarray_opendataset_config(src, self.name)
+        fig, ax = plt.subplots()
+        ds.isel(time=0).dis24.plot.pcolormesh(ax=ax)
+        coords = [c for c in self.param_coords if name in c['name']]
+        ax.scatter(coords[0]['lon'], coords[0]['lat'], c="red", s=10)
     
     def _repr_html_(self):
         ret = super()._repr_html_()

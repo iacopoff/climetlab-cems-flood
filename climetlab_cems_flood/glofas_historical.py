@@ -5,7 +5,7 @@ from datetime import date
 import climetlab as cml
 from climetlab import Dataset
 
-from .utils import Parser, ReprMixin, months_num2str, preprocess_spatial_filter, build_multi_request
+from .utils import Parser, ReprMixin, months_num2str, preprocess_spatial_filter, build_multi_request, xarray_opendataset_config, store_request_param
 
 from functools import partial
 
@@ -36,14 +36,14 @@ class GlofasHistorical(Dataset, ReprMixin):
         variable,
         temporal_filter,
         area=None,
-        lat=None,
-        lon=None,
         coords=None,
         split_on=None,
         threads=None,
         merger=None
     ): 
 
+        store_request_param(self, ['param_area', 'param_coords'], [area, coords])
+        
         if threads is not None:
             cml.sources.SETTINGS.set("number-of-download-threads", threads)
             
@@ -65,8 +65,7 @@ class GlofasHistorical(Dataset, ReprMixin):
         }
 
         self._sf_ids = preprocess_spatial_filter(self.request, area, coords)
-        print(self.request)
-        print(self._sf_ids)
+
         if split_on is not None:
             sources, file_output_names = build_multi_request(self.request, split_on, self._sf_ids, dataset='cems-glofas-historical')
             self.output_names = file_output_names
@@ -76,6 +75,5 @@ class GlofasHistorical(Dataset, ReprMixin):
             self.source = cml.load_source("cds", "cems-glofas-historical", **self.request)
 
     def to_xarray(self):
-        return self.source.to_xarray(backend_kwargs={'time_dims': ['time']}).isel(surface=0, step=0, drop=True).drop_vars(["valid_time"])
-
+        return xarray_opendataset_config(self.source, self.name)
 
