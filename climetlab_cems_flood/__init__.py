@@ -28,6 +28,7 @@ def placeholder():
 
 if not CONFIG_PATH.exists():
         CONFIG = placeholder()
+        CONFIG_PATH.mkdir()
         with open(CONFIG_PATH, "w") as f:
                 dump(CONFIG, f)
 else:
