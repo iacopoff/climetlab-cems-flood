@@ -1,5 +1,5 @@
 from re import fullmatch, search
-from requests import get
+from json import dump, load
 from datetime import datetime, timedelta
 from functools import partial
 from itertools import product, chain
@@ -463,15 +463,3 @@ def show_request_for_parameter(product, key, value, return_output=False) -> List
     if return_output:
         return years, months, days
 
-
-def api_get_cds_catalog(dataset=None):
-    """Request product metadata. Fall back to cached metadata if request fails."""
-    if dataset:  # request catalog product list
-        URL = f"https://cds.climate.copernicus.eu/api/v2.ui/resources/{dataset}"
-    else:
-        URL = "https://cds.climate.copernicus.eu/api/v2.ui/resources/"
-    with get(URL) as r:
-        res = r.json()
-
-    ex = res["structured_data"]["temporalCoverage"]
-    return ex
