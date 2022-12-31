@@ -1,9 +1,8 @@
+# Request parameters
 
+# Filtering
 
-
-# Parameters
-
-## time_filter
+## Temporal
 
 There are different options for selecting multiple non consecutive or consecutive years, months, days. 
 
@@ -31,10 +30,9 @@ In case you are in doubt, before sending a request you can easily check whether 
 ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31']
 ```
 
-## lat, lon
+## Spatial
 
-
-## area
+### by bounding box (area)
 
 You can define a bounding box:
 
@@ -42,9 +40,12 @@ You can define a bounding box:
 
 You can also pass a list of areas..
 
-## split_on and threads 
+### by points (coords)
 
-The `split_on` parameter allows splitting the request into multiple requests to the CDS.
+
+## Parallel requests
+
+ The `split_on` parameter allows splitting the request into multiple requests to the CDS.
 
 For example, this is how you would send a request per year and per month:
 
@@ -68,11 +69,3 @@ Please check the CDS website for how many concurrent request you are allowed to 
 
 
 It is also possible to split by area in case you are requesting a list of areas
-
-## merger
-
-If the dataset is made up of multiple files, it is possible to merge them using this parameter.
-
-The merger is resposible of combining multiple files when, for example, the `Dataset` is converted to an `xarray.Dataset` with the `to_xarray()` method.
-
-Find more in [CliMetLab documentation](https://climetlab.readthedocs.io/en/latest/) 

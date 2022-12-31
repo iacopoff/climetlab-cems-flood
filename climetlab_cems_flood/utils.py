@@ -8,6 +8,7 @@ from copy import deepcopy
 from pathlib import Path
 from importlib import resources
 from collections.abc import Iterable
+import cf2cdm
 
 from climetlab import load_source
 from . import CONFIG
@@ -225,6 +226,14 @@ def xarray_opendataset_config(src, dataset):
             ret = ret.drop_vars(["valid_time"])
         except ValueError:
             pass
+    if 'glofas-forecast' in dataset:
+        ret = src.to_xarray()
+        try:
+            ret = ret.isel(surface=0, drop=True)
+        except ValueError:
+            pass
+        finally:
+            ret = cf2cdm.translate_coords(ret, cf2cdm.CDS)
         
     return ret
     
