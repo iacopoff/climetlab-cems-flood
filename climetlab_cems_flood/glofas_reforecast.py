@@ -80,6 +80,8 @@ class GlofasReforecast(Dataset, ReprMixin):
         leadtime_hour,
         area=None,
         coords=None,
+        lat=None,
+        lon=None,
         split_on=None,
         threads=None,
         merger=False
