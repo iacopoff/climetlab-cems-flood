@@ -4,6 +4,6 @@
 :caption: 'Contents:'
 :glob: 
 
-examples/*
+how_to/*
 
 ```

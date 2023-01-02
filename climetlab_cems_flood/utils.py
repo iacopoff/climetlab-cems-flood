@@ -203,9 +203,9 @@ def preprocess_spatial_filter(
             cds_area = area[0].get("area")
             ids.append(area[0].get("name"))
 
-    if isinstance(cds_area, list):
+    if isinstance(cds_area, list) and (area is not None or coords is not None):
         request.update({"area": cds_area})
-    elif type(area).__name__ == "GeoDataFrame" or type(area).__name__ == "GeoSeries":
+    if type(area).__name__ == "GeoDataFrame" or type(area).__name__ == "GeoSeries":
         W, S, E, N = area.unary_union.bounds  # (minx, miny, maxx, maxy)
         bounds = [N, W, S, E]
         request.update({"area": bounds})
@@ -451,8 +451,9 @@ def build_multi_request(
             *[chunking(subreq[0], request[subreq[0]], subreq[1]) for subreq in split_on]
         )
     )
-    len_subreqs = len(subrequests) // len(sf_ids)
-    sf_ids = list(chain(*[[i] * len_subreqs for i in sf_ids]))
+    if "area" in subreq_params:
+        len_subreqs = len(subrequests) // len(sf_ids)
+        sf_ids = list(chain(*[[i] * len_subreqs for i in sf_ids]))
 
     for i, subreq in enumerate(subrequests):
         new_req = deepcopy(request)
@@ -463,10 +464,14 @@ def build_multi_request(
             file_output_names.append(
                 generate_output_name(subreq, subreq_params, sf_ids[i], key_mapping)
             )
-        else:
+        elif len(sf_ids) == 1:
             file_output_names.append(
                 generate_output_name(subreq, subreq_params, sf_ids[0], key_mapping)
             )
+        else:
+            file_output_names.append(
+                generate_output_name(subreq, subreq_params, None, key_mapping)
+            )   
 
     return sources, file_output_names
 

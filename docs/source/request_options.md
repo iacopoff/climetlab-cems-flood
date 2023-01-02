@@ -47,7 +47,9 @@ days: ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '
 
 It is possible to request an **area** or **point coordinate**.
 
-```{warning} when requesting multiple areas or point coordinates always declare the `split_on` parameter ```
+```{warning} 
+When requesting multiple areas or point coordinates always declare the split_on parameter 
+```
 
 The `area` keyword accepts a **bounding box** with a sequence of coordinates: `[north, west, south, east]` such as:
 
