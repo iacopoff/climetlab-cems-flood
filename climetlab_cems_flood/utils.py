@@ -2,7 +2,7 @@ from re import fullmatch
 from datetime import datetime, timedelta
 from functools import partial
 from itertools import product, chain
-from typing import List, Dict
+from typing import List, Dict, Union
 from copy import deepcopy
 from pathlib import Path
 from importlib import resources
@@ -166,7 +166,7 @@ def months_num2str(months: List[str]):
     return [mapping.get(m) for m in months if mapping.get(m)]
 
 
-def ismulty(x: list | tuple | str | dict):
+def ismulty(x: Union[list, tuple, str, dict]):
     cond1 = all([isinstance(i, Iterable) and not isinstance(i, str) for i in x])
     cond2 = len(x) > 1
     return cond1 and cond2
