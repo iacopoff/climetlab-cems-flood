@@ -41,7 +41,7 @@ class GlofasForecast(Dataset, CommonMixin):
         coords=None,
         split_on=None,
         threads=None,
-        merger=False,
+        merger=None,
     ):
 
         store_request_param(self, ["param_area", "param_coords"], [area, coords])

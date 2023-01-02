@@ -143,7 +143,7 @@ class Parser:
         # check request is within temporal coverage
         if int(years[0]) < start_year or int(years[-1]) > end_year:
             raise ValueError(
-                f"Time filter is not within temporal coverage {start_year}-{end_year}"
+                f"Temporal filter '{string}' is not within temporal coverage {start_year}-{end_year}"
             )
 
         return years, months, days
@@ -173,34 +173,36 @@ def ismulty(x: list | tuple | str | dict):
     return cond1 and cond2
 
 
-def preprocess_spatial_filter(request, area: List[Dict], coords: List[Dict]) -> List[str]:
-    ids = [] 
+def preprocess_spatial_filter(
+    request, area: List[Dict], coords: List[Dict]
+) -> List[str]:
+    ids = []
     cds_area: List[List] = []
     if coords is not None:
         if area is not None:
             raise ValueError("area AND coords are not allowed together")
         if ismulty(coords):
             for coord in coords:
-                lat = coord.get('lat')
-                lon = coord.get('lon')
+                lat = coord.get("lat")
+                lon = coord.get("lon")
                 cds_area.append([lat, lon, lat, lon])  # N/W/S/E
-                ids.append(coord.get('name'))
+                ids.append(coord.get("name"))
         else:
-            lat = coords[0].get('lat')
-            lon = coords[0].get('lon')
-            cds_area = [lat, lon, lat, lon]   # N/W/S/E
-            ids.append(coords[0].get('name'))
+            lat = coords[0].get("lat")
+            lon = coords[0].get("lon")
+            cds_area = [lat, lon, lat, lon]  # N/W/S/E
+            ids.append(coords[0].get("name"))
     if area is not None:
         if coords is not None:
             raise ValueError("area AND coords are not allowed together")
         if ismulty(area):
             for a in area:
-                ids.append(a.get('name'))
-                cds_area.append(a.get('area'))
+                ids.append(a.get("name"))
+                cds_area.append(a.get("area"))
         else:
-            cds_area = area[0].get('area')
-            ids.append(area[0].get('name'))
-    
+            cds_area = area[0].get("area")
+            ids.append(area[0].get("name"))
+
     if isinstance(cds_area, list):
         request.update({"area": cds_area})
     elif type(area).__name__ == "GeoDataFrame" or type(area).__name__ == "GeoSeries":
@@ -209,16 +211,17 @@ def preprocess_spatial_filter(request, area: List[Dict], coords: List[Dict]) -> 
         request.update({"area": bounds})
     return ids
 
-def store_request_param(klass, params = [], values = []):
+
+def store_request_param(klass, params=[], values=[]):
     for param, value in zip(params, values):
-        setattr(klass, param, value )
+        setattr(klass, param, value)
 
 
 def xarray_opendataset_config(src, dataset):
-    if 'historical' in dataset:
-        ret = src.to_xarray(backend_kwargs={'time_dims': ['time']})
+    if "historical" in dataset:
+        ret = src.to_xarray(backend_kwargs={"time_dims": ["time"]})
         try:
-            #ret = ret.drop_dims(["step", "surface"]) This drops also the Variable
+            # ret = ret.drop_dims(["step", "surface"]) This drops also the Variable
             ret = ret.isel(step=0, surface=0, drop=True)
         except ValueError:
             ret = ret.drop_vars(["step", "surface"])
@@ -226,7 +229,12 @@ def xarray_opendataset_config(src, dataset):
             ret = ret.drop_vars(["valid_time"])
         except ValueError:
             pass
-    if 'glofas-forecast' in dataset:
+    if (
+        "glofas-forecast" in dataset
+        or "glofas-reforecast" in dataset
+        or dataset == "glofas-seasonal-reforecast"
+        or dataset == "glofas-seasonal"
+    ):
         ret = src.to_xarray()
         try:
             ret = ret.isel(surface=0, drop=True)
@@ -234,9 +242,9 @@ def xarray_opendataset_config(src, dataset):
             pass
         finally:
             ret = cf2cdm.translate_coords(ret, cf2cdm.CDS)
-        
+
     return ret
-    
+
 
 class CommonMixin:
     def _set_paths(self, output_folder, output_name_prefix):
@@ -267,7 +275,7 @@ class CommonMixin:
             if not p.exists():
                 ds.to_netcdf(p)
         else:
-            for i, src in enumerate(self.source.indexes): # self.source.sources
+            for i, src in enumerate(self.source.indexes):  # self.source.sources
                 ds = xarray_opendataset_config(src, self.name)
                 p = self.output_path[i].with_suffix(".nc")
                 # match = search("(area[a-z0-9?-]*)", self.output_path[i].stem).group()
@@ -281,17 +289,20 @@ class CommonMixin:
         try:
             from matplotlib import pyplot as plt
         except ImportError:
-            raise ImportError('show_coords requires matplotilb!')
+            raise ImportError("show_coords requires matplotilb!")
         for i, n in enumerate(self.output_names):
-            if name in n: break
-        src = self.source.indexes[i] # self.source.sources
+            if name in n:
+                break
+        src = self.source.indexes[i]  # self.source.sources
         ds = xarray_opendataset_config(src, self.name)
         fig, ax = plt.subplots()
         ds.isel(time=0).dis24.plot.pcolormesh(ax=ax)
-        coords = [c for c in self.param_coords if name in c['name']]
-        ax.scatter(coords[0]['lon'], coords[0]['lat'], c="red", s=10)
-        ax.annotate(coords[0]['name'], xy=(coords[0]['lon'], coords[0]['lat']),  xycoords='data')
-    
+        coords = [c for c in self.param_coords if name in c["name"]]
+        ax.scatter(coords[0]["lon"], coords[0]["lat"], c="red", s=10)
+        ax.annotate(
+            coords[0]["name"], xy=(coords[0]["lon"], coords[0]["lat"]), xycoords="data"
+        )
+
     def _repr_html_(self):
         ret = super()._repr_html_()
 
@@ -319,9 +330,11 @@ def validate_params(func):
     return inner
 
 
-def chunking(param, requested_param_values: List[List], chunk_size: int) -> list[list[str]]:
-    
-    if param == 'area' or param == 'coords':
+def chunking(
+    param, requested_param_values: List[List], chunk_size: int
+) -> list[list[str]]:
+
+    if param == "area" or param == "coords":
         if ismulty(requested_param_values):
             chunks = [
                 requested_param_values[i : i + chunk_size]
@@ -339,8 +352,8 @@ def chunking(param, requested_param_values: List[List], chunk_size: int) -> list
 
 
 def generate_output_name(subreq, subreq_params, sf_id, key_mapping) -> str:
-    """Generate an output name for every subrequest. To be used by conversion methods. 
-    
+    """Generate an output name for every subrequest. To be used by conversion methods.
+
     ex:
     output_name = <param1>-<values1>_<param2>-<values2> ...
     Parameters
@@ -387,7 +400,11 @@ def validate_spliton(split_on):
 
 
 def build_multi_request(
-    request: dict, split_on: List[tuple | str], sf_ids: List[str], dataset: str, key_mapping={}
+    request: dict,
+    split_on: List[tuple | str],
+    sf_ids: List[str],
+    dataset: str,
+    key_mapping={},
 ):
     """
     Takes a request and splits it in indepedent sub-requests defined by `split_on`.
@@ -430,21 +447,27 @@ def build_multi_request(
         )
     sources, file_output_names = [], []
     subrequests = list(
-        product(*[chunking(subreq[0], request[subreq[0]], subreq[1]) for subreq in split_on])
+        product(
+            *[chunking(subreq[0], request[subreq[0]], subreq[1]) for subreq in split_on]
+        )
     )
     len_subreqs = len(subrequests) // len(sf_ids)
-    sf_ids = list(chain(*[[i]*len_subreqs for i in sf_ids]))
-    
+    sf_ids = list(chain(*[[i] * len_subreqs for i in sf_ids]))
+
     for i, subreq in enumerate(subrequests):
         new_req = deepcopy(request)
         subreq_dict = {k: v for k, v in zip(subreq_params, subreq)}
         new_req.update(subreq_dict)
         sources.append(partial(load_source, "cds", dataset, new_req))
-        if len(sf_ids) > 1: 
-            file_output_names.append(generate_output_name(subreq, subreq_params, sf_ids[i] , key_mapping))
+        if len(sf_ids) > 1:
+            file_output_names.append(
+                generate_output_name(subreq, subreq_params, sf_ids[i], key_mapping)
+            )
         else:
-            file_output_names.append(generate_output_name(subreq, subreq_params, sf_ids[0] , key_mapping))
-        
+            file_output_names.append(
+                generate_output_name(subreq, subreq_params, sf_ids[0], key_mapping)
+            )
+
     return sources, file_output_names
 
 
@@ -471,4 +494,3 @@ def show_request_for_parameter(product, key, value, return_output=False) -> List
     print(f"days: {days}")
     if return_output:
         return years, months, days
-

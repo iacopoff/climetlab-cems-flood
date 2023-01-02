@@ -1,23 +1,20 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-from datetime import date
 import climetlab as cml
 from climetlab import Dataset
-import cf2cdm
-
 
 from .utils import (
     Parser,
-    ReprMixin,
+    CommonMixin,
     preprocess_spatial_filter,
-    build_multi_request
+    build_multi_request,
+    xarray_opendataset_config,
+    store_request_param,
 )
 
 
-
-
-class GlofasSeasonal(Dataset, ReprMixin): 
+class GlofasSeasonal(Dataset, CommonMixin): 
     name = None
     home_page = "-"
     licence = "-"
@@ -40,22 +37,20 @@ class GlofasSeasonal(Dataset, ReprMixin):
         temporal_filter,
         leadtime_hour,
         area=None,
-        lat=None,
-        lon=None,
+        coords=None,
         split_on=None,
         threads=None,
         merger=None
     ):
-        """Constructor method
-        """
 
+        store_request_param(self, ["param_area", "param_coords"], [area, coords])
 
         if threads is not None:
             cml.sources.SETTINGS.set("number-of-download-threads", threads)
 
-        self.parser = Parser('glofas-seasonal')
+        self.parser = Parser("cems-glofas-forecast")
 
-        years, months, _ = self.parser.temporal_filter(temporal_filter)
+        years, months, days = self.parser.temporal_filter(temporal_filter)
 
         leadtime_hour = self.parser.leadtime_hour(leadtime_hour, 24)
 
@@ -69,10 +64,11 @@ class GlofasSeasonal(Dataset, ReprMixin):
             "format": "grib",
         }
 
-        preprocess_spatial_filter(self.request, area, lat, lon)
+        self._sf_ids = preprocess_spatial_filter(self.request, area, coords)
+
 
         if split_on is not None:
-            sources, output_names = build_multi_request(self.request, split_on, dataset ='cems-glofas-seasonal')
+            sources, output_names = build_multi_request(self.request, split_on, self._sf_ids, dataset ='cems-glofas-seasonal')
             self.output_names = output_names
             self.source = cml.load_source("multi", sources, merger=merger)
         else:
@@ -81,5 +77,4 @@ class GlofasSeasonal(Dataset, ReprMixin):
             
 
     def to_xarray(self):
-        ds = self.source.to_xarray().isel(surface=0, drop=True)
-        return cf2cdm.translate_coords(ds, cf2cdm.CDS)
+        return xarray_opendataset_config(self.source, self.name)

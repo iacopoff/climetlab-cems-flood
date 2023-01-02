@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-from datetime import date,datetime, timedelta
+from datetime import date, datetime, timedelta
 import climetlab as cml
 from climetlab import Dataset
 import cf2cdm
@@ -9,52 +9,29 @@ import cf2cdm
 
 from .utils import (
     Parser,
-    ReprMixin,
-    handle_cropping_area,
+    CommonMixin,
+    months_num2str,
+    preprocess_spatial_filter,
     build_multi_request,
-    months_num2str
+    xarray_opendataset_config,
+    store_request_param,
 )
 
+
 def get_monthsdays():
- 
+
     start, end = datetime(2019, 1, 1), datetime(2019, 12, 31)
     days = [start + timedelta(days=i) for i in range((end - start).days + 1)]
-    monthday = [d.strftime("%m-%d").split("-")  for d in days if d.weekday() in [0,3] ]  
- 
+    monthday = [d.strftime("%m-%d").split("-") for d in days if d.weekday() in [0, 3]]
+
     return monthday
- 
+
+
 MONTHSDAYS = get_monthsdays()
 
 
-class GlofasReforecast(Dataset, ReprMixin):
-    """_summary_
+class GlofasReforecast(Dataset, CommonMixin):
 
-    :param system_version: _description_
-    :type system_version: _type_
-    :param product_type: _description_
-    :type product_type: _type_
-    :param model: _description_
-    :type model: _type_
-    :param variable: _description_
-    :type variable: _type_
-    :param period: _description_
-    :type period: _type_
-    :param leadtime_hour: _description_
-    :type leadtime_hour: _type_
-    :param area: _description_, defaults to None
-    :type area: _type_, optional
-    :param lat: _description_, defaults to None
-    :type lat: _type_, optional
-    :param lon: _description_, defaults to None
-    :type lon: _type_, optional
-    :param split_on: _description_, defaults to None
-    :type split_on: _type_, optional
-    :param threads: _description_, defaults to None
-    :type threads: _type_, optional
-    :param merger: _description_, defaults to False
-    :type merger: bool, optional
-        """
-        
     name = None
     home_page = "-"
     licence = "-"
@@ -68,51 +45,42 @@ class GlofasReforecast(Dataset, ReprMixin):
         "If you do not agree with such terms, do not download the data. "
     )
 
-    temporal_range = [2019, date.today().year]
-
     def __init__(
         self,
         system_version,
         product_type,
         model,
         variable,
-        period,
+        temporal_filter,
         leadtime_hour,
         area=None,
         coords=None,
-        lat=None,
-        lon=None,
         split_on=None,
         threads=None,
-        merger=False
+        merger=None,
     ):
-        """Constructor method
-        """
 
+        store_request_param(self, ["param_area", "param_coords"], [area, coords])
 
         if threads is not None:
             cml.sources.SETTINGS.set("number-of-download-threads", threads)
 
-        self.parser = Parser(self.temporal_range)
+        self.parser = Parser("cems-glofas-reforecast")
 
-        years, months, days = self.parser.period(period)
-        
-        nmonths=set()
+        years, months, days = self.parser.temporal_filter(temporal_filter)
+
+        nmonths = set()
         ndays = set()
-        # filter days
         for m in months:
             for d in days:
-                if [m,d] in MONTHSDAYS:
+                if [m, d] in MONTHSDAYS:
                     nmonths.add(m)
                     ndays.add(d)
-                    
-                    
-        nmonths = list(nmonths)
-        ndays = list(ndays)          
-        
-        nmonths = months_num2str(nmonths)
 
-        leadtime_hour = self.parser.leadtime(leadtime_hour, 24)
+        nmonths = months_num2str(list(nmonths))
+        ndays = list(ndays)
+
+        leadtime_hour = self.parser.leadtime_hour(leadtime_hour, 24)
 
         self.request = {
             "system_version": system_version,
@@ -126,20 +94,20 @@ class GlofasReforecast(Dataset, ReprMixin):
             "format": "grib",
         }
 
-        handle_cropping_area(self.request, area, lat, lon)
+        self._sf_ids = preprocess_spatial_filter(self.request, area, coords)
 
         if split_on is not None:
-            sources, output_names = build_multi_request(self.request, split_on, dataset ='cems-glofas-reforecast')
+            sources, output_names = build_multi_request(
+                self.request, split_on, self._sf_ids, dataset="cems-glofas-reforecast"
+            )
             self.output_names = output_names
             self.source = cml.load_source("multi", sources, merger=merger)
-            
+
         else:
             self.output_names = None
-            self.source = cml.load_source("cds", "cems-glofas-reforecast", **self.request)
-            
+            self.source = cml.load_source(
+                "cds", "cems-glofas-reforecast", **self.request
+            )
 
     def to_xarray(self):
-        ds = self.source.to_xarray().isel(surface=0, drop=True)
-        return cf2cdm.translate_coords(ds, cf2cdm.CDS)
-
-
+        return xarray_opendataset_config(self.source, self.name)

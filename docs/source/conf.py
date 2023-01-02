@@ -70,4 +70,4 @@ nb_execution_mode = "off"
 
 
 autoapi_dirs = ['../../climetlab_cems_flood']
-autoapi_ignore = ['*utils*','*adapter*','*_version*']
+autoapi_ignore = ['*utils*', '*adapter*', '*_version*']

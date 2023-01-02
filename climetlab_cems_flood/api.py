@@ -13,7 +13,6 @@ def api_get_cds_catalog(dataset=None):
     return res
 
 
-
 def sync_config(products, config_path):
     with open(config_path, "r") as f:
         config = load(f)   
@@ -23,8 +22,8 @@ def sync_config(products, config_path):
         dump(config, f)
         
     return config
-        
-        
+ 
+   
 def update_product(dataset, config):
     md = api_get_cds_catalog(dataset)
 
@@ -36,6 +35,7 @@ def update_product(dataset, config):
     end_year = int(search("([0-9]{4})", lst[1]).group())
     config[dataset]["temporal_coverage"] = [start_year, end_year]
     
+
 def update_all(products, config):
     for p in products:
         update_product(p, config)
