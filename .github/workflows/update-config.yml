@@ -1,6 +1,6 @@
 on:
   schedule:
-  - cron: "0 0 * * Sun"
+  - cron: "0 0 * * SUN"
   
   
 jobs:
@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v3
     - name: run python
       run: python ./.github/workflows/update.py
     - name: check for changes
@@ -18,7 +18,7 @@ jobs:
       run: git add .
     - name: commit changed files
       run: git commit -m "Auto updating cems_config.json"
-    - name: fetch from master
+    - name: fetch from main
       run: git fetch origin main
-    - name: push code to master
+    - name: push code to main
       run: git push origin HEAD:main
