@@ -22,14 +22,14 @@ pip install climetlab-cems-flood
 ```
 
 
-
 ```{toctree}
 :caption: 'Contents:'
 :maxdepth: 2
 
 introduction.md
-parameters.md
-examples.md
+request_options.md
+how_to.md
+tutorial.md
 
 ```
 

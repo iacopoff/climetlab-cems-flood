@@ -1,5 +1,4 @@
-
-# Examples
+# How-to guides
 
 ```{toctree}
 :caption: 'Contents:'
