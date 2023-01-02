@@ -1,5 +1,4 @@
-from re import fullmatch, search
-from json import dump, load
+from re import fullmatch
 from datetime import datetime, timedelta
 from functools import partial
 from itertools import product, chain
@@ -278,9 +277,6 @@ class CommonMixin:
             for i, src in enumerate(self.source.indexes):  # self.source.sources
                 ds = xarray_opendataset_config(src, self.name)
                 p = self.output_path[i].with_suffix(".nc")
-                # match = search("(area[a-z0-9?-]*)", self.output_path[i].stem).group()
-                # stem = match.split("-")[-1]
-                # ds = ds.expand_dims({"sfid": [stem]})
                 paths.append(p)
                 if not p.exists():
                     ds.to_netcdf(p)
@@ -288,6 +284,8 @@ class CommonMixin:
     def show_coords(self, name):
         try:
             from matplotlib import pyplot as plt
+            import cartopy.crs as ccrs
+            import cartopy.feature as cf
         except ImportError:
             raise ImportError("show_coords requires matplotilb!")
         for i, n in enumerate(self.output_names):
@@ -295,22 +293,26 @@ class CommonMixin:
                 break
         src = self.source.indexes[i]  # self.source.sources
         ds = xarray_opendataset_config(src, self.name)
-        fig, ax = plt.subplots()
-        ds.isel(time=0).dis24.plot.pcolormesh(ax=ax)
+        crs = ccrs.PlateCarree()
+        fig, ax = plt.subplots(1, 1, subplot_kw=dict(projection=crs))
+        ds = ds.isel(**{k:0 for k, v in ds.dims.items() if (k != 'lat' and k != 'lon')})
+        cbar_kwargs = {'orientation':'horizontal', 'shrink':0.6}
+        ds.dis24.plot.pcolormesh(
+                                            ax=ax, 
+                                            alpha=0.5,
+                                            transform=crs,
+                                            cbar_kwargs=cbar_kwargs)
         coords = [c for c in self.param_coords if name in c["name"]]
         ax.scatter(coords[0]["lon"], coords[0]["lat"], c="red", s=10)
         ax.annotate(
-            coords[0]["name"], xy=(coords[0]["lon"], coords[0]["lat"]), xycoords="data"
+            coords[0]["name"], xy=(coords[0]["lon"] + 0.01, coords[0]["lat"] - 0.01), xycoords="data", color='red'
         )
+        ax.gridlines(crs=crs, draw_labels=True, linewidth=0.6, color='gray', alpha=0.5, linestyle='-.')
+        ax.add_wms(wms='http://vmap0.tiles.osgeo.org/wms/vmap0', layers=['basic'])
+        ax.set_extent([float(ds.lon[0] - 0.2), float(ds.lon[0] + 0.2), float(ds.lat[0] - 0.2), float(ds.lat[0] + 0.2)], crs=crs)
 
     def _repr_html_(self):
         ret = super()._repr_html_()
-
-        style = """
-            <style>table.climetlab td {
-            vertical-align: top;
-            text-align: left !important;}
-        </style>"""
 
         li = ""
         for key in self.request:
