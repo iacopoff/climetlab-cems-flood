@@ -403,7 +403,7 @@ def validate_spliton(split_on):
 
 def build_multi_request(
     request: dict,
-    split_on: List[tuple | str],
+    split_on: List[Union[tuple, str]],
     sf_ids: List[str],
     dataset: str,
     key_mapping={},
