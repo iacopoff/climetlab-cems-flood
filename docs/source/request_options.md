@@ -45,40 +45,63 @@ days: ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '
 
 ## Spatial
 
-### by bounding box (area)
+It is possible to request an **area** or **point coordinate**.
 
-You can define a bounding box:
+```{warning} when requesting multiple areas or point coordinates always declare the `split_on` parameter ```
 
-`north, west, south, east`
+The `area` keyword accepts a **bounding box** with a sequence of coordinates: `[north, west, south, east]` such as:
 
-You can also pass a list of areas..
+```python
+area = [{"name":"rhine", "area":[50.972204,5.450796, 46.296530, 11.871059]}]
+```
+It is possible to request multiple areas, for example:
 
-### by points (coords)
+```python
+area = [
+    {"name":"rhine", "area":[50.972204,5.450796, 46.296530, 11.871059]},
+    {"name":"po", "area":[46.62980, 6.55, 44.05381, 12.554784]}]
+```
+
+To request **point coordinates**, use the `coords` keyword. 
+
+```python
+coords = [
+    {'name':'pontelagoscuro','lat':44.886111, 'lon':11.604444},
+    {'name':'casale-monferrato','lat':45.142222, 'lon':8.447500},
+    {'name':'canonica-dadda', 'lat':45.576944, 'lon':9.534722}]
+```
+
+```{note} The CDS always returns 4 grid cells when requesting a point coordinate. 
+Once the request is completed, use the `show_coords` method to inspect the location.
+ ```
 
 
-## Parallel requests
+# Speed up requests
 
- The `split_on` parameter allows splitting the request into multiple requests to the CDS.
+The CDS limits the number of requests and the amount of data per product that is possible to retrieve with an individual request.
 
-For example, this is how you would send a request per year and per month:
+The `split_on` keyword allows sending parallel requests to the CDS, overcoming those limits. 
+It is possible to split the request into sub-requests, providing the request parameters to split on, such as `area`, `coords`, `year`, `month`, `day`. It is also possible to decide how many items are requested per sub-request, using the format `(parameter, n. of items)`.
+
+```{warning} For multiple spatial requests, it is mandatory to split on area or coords```
+
+Use the `threads` keyword to allocate the number of threads to send sub-requests (n. of threads == n. of sub-requests) 
+
+```{note} Reforecast and historical products require an "h" before "year"-> "hyear", "month"->"hmonth", "day"->"hday" 
+```
+
+For example, the following request send sub-requests in "chunks" of 4-year and 6-months
 
 ```python
 hist = cml.load_dataset(
-            'cems-flood-glofas-historical',
+            'glofas-historical',
             model='lisflood',
             product_type='intermediate',
             system_version='version_3_1',
-            period= '20000101-20201231',
+            temporal_filter= '2000-2020 * *',
             variable="river_discharge_in_the_last_24_hours",
-            split_on = ['hyear','hmonth'],
-            threads = 6,
+            split_on = [('hyear', 4), ('hmonth',6)],
+            threads = 12
         )
 
 ```
-
-The `threads` parameters indicate the number of concurrent requests are sent to the CDS. 
-
-Please check the CDS website for how many concurrent request you are allowed to send.
-
-
-It is also possible to split by area in case you are requesting a list of areas
