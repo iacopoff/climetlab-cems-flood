@@ -5,17 +5,28 @@
 
 # Welcome to climetlab cems flood's documentation!
 
-The `climetlab cems flood` package is a plugin of the [CliMetLab](https://climetlab.readthedocs.io/en/latest/index.html) Python package, to retrieve [Global Flood Awareness System (GloFAS)](https://www.globalfloods.eu/general-information/about-glofas/) data from the [Climate Data Store (CDS)](https://cds.climate.copernicus.eu/#!/home) distributed storage system.
+The `climetlab cems flood` package is a plugin of the [CliMetLab](https://climetlab.readthedocs.io/en/latest/index.html) Python package. You can use it to retrieve [Global Flood Awareness System (GloFAS)](https://www.globalfloods.eu/general-information/about-glofas/) data from the [Climate Data Store (CDS)](https://cds.climate.copernicus.eu/#!/home) distributed storage system.
 
 
 ```{note} Is currently not possible to download EFAS (coming soon)
 ```
 
+## Installation
+
+```{warning}
+It is advised to work in a dedicated python environment.
+```
+
+```bash
+pip install climetlab-cems-flood
+```
+
+
+
 ```{toctree}
 :caption: 'Contents:'
 :maxdepth: 2
 
-installation.md
 introduction.md
 parameters.md
 examples.md
