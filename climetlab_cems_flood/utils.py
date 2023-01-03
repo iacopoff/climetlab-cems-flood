@@ -316,7 +316,7 @@ class CommonMixin:
 
         li = ""
         for key in self.request:
-            li += f"<li> <b>{key}: </b> {self.request[key]} </li>".format()
+            li += f"<li> <b>{key}: </b> {self.request[key]} </li>"
 
         return (
             ret
