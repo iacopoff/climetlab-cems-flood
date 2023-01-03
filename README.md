@@ -1,5 +1,9 @@
 
-![Build Status](https://github.com/iacopoff/climetlab-cems-flood/workflows/pytest/badge.svg)
+# Climetlab CEMS Flood
+
+| **Build Status**                                                                                |
+|:-------------------------------------------------------------------------------:|
+|![Build Status](https://github.com/iacopoff/climetlab-cems-flood/workflows/pytest/badge.svg)|
 
 Download GloFAS data from the Climate Data Store. 
 
