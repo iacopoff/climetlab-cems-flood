@@ -231,8 +231,8 @@ def xarray_opendataset_config(src, dataset):
     if (
         "glofas-forecast" in dataset
         or "glofas-reforecast" in dataset
-        or dataset == "glofas-seasonal-reforecast"
-        or dataset == "glofas-seasonal"
+        or dataset == "cems-glofas-seasonal-reforecast"
+        or dataset == "cems-glofas-seasonal"
     ):
         ret = src.to_xarray()
         try:
