@@ -28,6 +28,7 @@ pip install climetlab-cems-flood
 
 introduction.md
 request_options.md
+extra.md
 how_to.md
 tutorial.md
 
