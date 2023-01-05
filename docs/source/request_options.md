@@ -1,13 +1,13 @@
 # Request options
 
-# Filtering
+## Filtering
 
-Filtering can dramaticaly reduce the volume of data to download, focusing only over period or location of interest.
+Filtering can dramaticaly reduce the volume of data to download.
 
-## Temporal
+### Temporal
 
 The `temporal_filter` keyword allows requesting specific period or interval of time. </br>
-The `temporal_filter` syntax is simple: for selecting multiple non consecutive or consecutive years, months, days, use these operators:
+The syntax is simple: for selecting multiple non consecutive or consecutive years, months, days, use these operators
 
 - `-` (FROM-TO) 
 - `/` (AND)
@@ -16,7 +16,7 @@ The `temporal_filter` syntax is simple: for selecting multiple non consecutive o
 to compose a date that follows the format `%Y %m %d`. </br>
 For example:
 
-| description        |  year (%Y) | month (%m)|  day  (%d)| temporal filter |
+| Description        |  Year (%Y) | Month (%m)|  Day  (%d)| temporal_filter string|
 |--------|:-----:|:-----:|:-----:|-------------|
 | Request one single date       |   2000  |   01  |   01  | "2000 01 01"     |             |
 | Request JJA between 2020 and 2022| 2020-2022 | 06-08 | * | "2020-2022 06-08 *"|             |
@@ -43,7 +43,7 @@ months: ['07']
 days: ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31']
 ```
 
-## Spatial
+### Spatial
 
 It is possible to request an **area** or **point coordinate**.
 
@@ -78,7 +78,7 @@ Once the request is completed, use the `show_coords` method to inspect the locat
  ```
 
 
-# Speed up requests
+## Speed up requests
 
 The CDS limits the number of requests and the amount of data per product that is possible to retrieve with an individual request.
 
