@@ -1,7 +1,8 @@
-# How-to guides
+# How-to
+
+## Download
 
 ```{toctree}
-:caption: 'Contents:'
 :glob: 
 
 how_to/*
