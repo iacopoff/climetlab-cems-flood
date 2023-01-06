@@ -8,6 +8,7 @@ from pathlib import Path
 from importlib import resources
 from collections.abc import Iterable
 import cf2cdm
+import xarray as xr
 
 from climetlab import load_source
 from . import CONFIG
@@ -218,12 +219,18 @@ def store_request_param(klass, params=[], values=[]):
 
 def xarray_opendataset_config(src, dataset):
     if "historical" in dataset:
-        ret = src.to_xarray(backend_kwargs={"time_dims": ["time"]})
+        try:
+            ret = src.to_xarray(backend_kwargs={"time_dims": ["time"]})
+        except AssertionError:
+            ret = xr.open_dataset(src.path, engine="cfgrib", backend_kwargs={"time_dims": ["time"]})
         try:
             # ret = ret.drop_dims(["step", "surface"]) This drops also the Variable
             ret = ret.isel(step=0, surface=0, drop=True)
         except ValueError:
-            ret = ret.drop_vars(["step", "surface"])
+            try:
+                ret = ret.drop_vars(["step", "surface"])
+            except ValueError:
+                pass
         try:
             ret = ret.drop_vars(["valid_time"])
         except ValueError:
@@ -295,7 +302,9 @@ class CommonMixin:
         ds = xarray_opendataset_config(src, self.name)
         crs = ccrs.PlateCarree()
         fig, ax = plt.subplots(1, 1, subplot_kw=dict(projection=crs))
-        ds = ds.isel(**{k:0 for k, v in ds.dims.items() if (k != 'lat' and k != 'lon')})
+        ds = ds.isel(**{k:0 for k, v in ds.dims.items() if ('lat' not in k and 'lon' not in k)})
+        lat = [i for i in ds.dims if 'lat' in i][0]
+        lon = [i for i in ds.dims if 'lon' in i][0]
         cbar_kwargs = {'orientation':'horizontal', 'shrink':0.6}
         ds.dis24.plot.pcolormesh(
                                             ax=ax, 
@@ -309,7 +318,7 @@ class CommonMixin:
         )
         ax.gridlines(crs=crs, draw_labels=True, linewidth=0.6, color='gray', alpha=0.5, linestyle='-.')
         ax.add_wms(wms='http://vmap0.tiles.osgeo.org/wms/vmap0', layers=['basic'])
-        ax.set_extent([float(ds.lon[0] - 0.2), float(ds.lon[0] + 0.2), float(ds.lat[0] - 0.2), float(ds.lat[0] + 0.2)], crs=crs)
+        ax.set_extent([float(ds[lon][0] - 0.2), float(ds[lon][1] + 0.2), float(ds[lat][0] - 0.2), float(ds[lat][1] + 0.2)], crs=crs)
 
     def _repr_html_(self):
         ret = super()._repr_html_()
