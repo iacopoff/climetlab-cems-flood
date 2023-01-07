@@ -12,7 +12,7 @@ For accessing the CDS, it is necessary to subscribe and configure the [CDS API k
 import climetlab as cml
 
 dataset = cml.load_dataset(
-            'glofas-seasonal',
+            'cems-glofas-seasonal',
             model='lisflood',
             system_version='operational',
             temporal_filter= '2022 01 01',
