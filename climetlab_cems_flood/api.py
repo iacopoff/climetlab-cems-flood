@@ -25,6 +25,7 @@ def sync_config(products, config_path):
  
    
 def update_product(dataset, config):
+    
     md = api_get_cds_catalog(dataset)
 
     sd = md.get('structured_data')
@@ -33,9 +34,14 @@ def update_product(dataset, config):
     lst = tc.split("/")
     start_year = int(search("([0-9]{4})", lst[0]).group())
     end_year = int(search("([0-9]{4})", lst[1]).group())
+    
+    
     config[dataset]["temporal_coverage"] = [start_year, end_year]
     
 
 def update_all(products, config):
     for p in products:
-        update_product(p, config)
+        try:
+            update_product(p, config)
+        except:
+            print(f'some problem updating {p}')

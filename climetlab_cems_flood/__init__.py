@@ -18,24 +18,27 @@ PRODUCTS = [
 ]
 
 def placeholder():
-        return {
-        'cems-glofas-forecast':{'leadtime_step':24,'temporal_coverage':[2019, 2022]},
-        'cems-glofas-historical':{'leadtime_step':24,'temporal_coverage':[1979, 2022]},
-        'cems-glofas-reforecast':{'leadtime_step':24,'temporal_coverage':[1999, 2018]},
-        'cems-glofas-seasonal-reforecast':{'leadtime_step':24,'temporal_coverage':[1981, 2022]},
-        'cems-glofas-seasonal':{'leadtime_step':24,'temporal_coverage':[2019, 2022]}
-        }
+    return {
+    'cems-glofas-forecast':{'leadtime_step':24,'temporal_coverage':[2019, 2022]},
+    'cems-glofas-historical':{'leadtime_step':24,'temporal_coverage':[1979, 2022]},
+    'cems-glofas-reforecast':{'leadtime_step':24,'temporal_coverage':[1999, 2018]},
+    'cems-glofas-seasonal-reforecast':{'leadtime_step':24,'temporal_coverage':[1981, 2022]},
+    'cems-glofas-seasonal':{'leadtime_step':24,'temporal_coverage':[2019, 2022]}
+    }
+
 
 if not CONFIG_PATH.exists():
-        CONFIG = placeholder()
-        if not CONFIG_PATH.parent.exists(): 
-                CONFIG_PATH.parent.mkdir()
-        with open(CONFIG_PATH, "w") as f:
-                dump(CONFIG, f)
+    CONFIG = placeholder()
+    if not CONFIG_PATH.parent.exists(): 
+        CONFIG_PATH.parent.mkdir()
+    with open(CONFIG_PATH, "w") as f:
+        dump(CONFIG, f)
 else:
-        try:
-                CONFIG = sync_config(PRODUCTS, CONFIG_PATH)   
-        except:
-                CONFIG = placeholder()
+    try:
+        print('syncing configs with remote CDS...')
+        CONFIG = sync_config(PRODUCTS, CONFIG_PATH)   
+        print('done.')
+    except:
+        CONFIG = placeholder()
       
 print(f"Loading cems config: {CONFIG_PATH.absolute()}, last modified: {datetime.datetime.fromtimestamp(CONFIG_PATH.stat().st_mtime)}")
